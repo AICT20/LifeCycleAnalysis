@@ -15,6 +15,9 @@ public interface FastSolverLinkedNode<D, N> extends Cloneable {
 	 */
 	public boolean addNeighbor(D originalAbstraction);
 
+	//lifecycle-add
+	public boolean removeNeighbor(D originalAbstraction);
+
 	/**
 	 * Gets the number of neighbors already registered with this abstraction
 	 * 

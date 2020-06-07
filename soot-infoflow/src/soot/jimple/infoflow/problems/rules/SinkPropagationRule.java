@@ -4,23 +4,18 @@ import java.util.Collection;
 
 import soot.SootMethod;
 import soot.Value;
-import soot.jimple.AssignStmt;
-import soot.jimple.IfStmt;
-import soot.jimple.InstanceInvokeExpr;
-import soot.jimple.InvokeExpr;
-import soot.jimple.LookupSwitchStmt;
-import soot.jimple.ReturnStmt;
-import soot.jimple.Stmt;
-import soot.jimple.TableSwitchStmt;
+import soot.jimple.*;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AbstractionAtSink;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 import soot.jimple.infoflow.sourcesSinks.manager.SinkInfo;
 import soot.jimple.infoflow.util.BaseSelector;
 import soot.jimple.infoflow.util.ByReferenceBoolean;
+import soot.jimple.infoflow.util.MyOwnUtils;
 
 /**
  * Rule for recording abstractions that arrive at sinks
@@ -111,61 +106,66 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 	@Override
 	public Collection<Abstraction> propagateCallToReturnFlow(Abstraction d1, Abstraction source, Stmt stmt,
 			ByReferenceBoolean killSource, ByReferenceBoolean killAll) {
-//		// We only report leaks for active taints, not for alias queries
-//		if (source.isAbstractionActive() && !source.getAccessPath().isStaticFieldRef()) {
-//			// Is the taint even visible inside the callee?
-//			if (!stmt.containsInvokeExpr() || isTaintVisibleInCallee(stmt, source)) {
-//				// Is this a sink?
-//				if (getManager().getSourceSinkManager() != null) {
-//					// Get the sink descriptor
-//					SinkInfo sinkInfo = getManager().getSourceSinkManager().getSinkInfo(stmt, getManager(),
-//							source.getAccessPath());
-//
-//					// If we have already seen the same taint at the same sink, there is no need to
-//					// propagate this taint any further.
-//					if (sinkInfo != null
-//							&& !getResults().addResult(new AbstractionAtSink(sinkInfo.getDefinition(), source, stmt))) {
-//						killState = true;
-//					}
-//				}
-//			}
-//		}
-//
-//		// If we are in the kill state, we stop the analysis
-//		if (killAll != null)
-//			killAll.value |= killState;
 
 		return null;
 	}
+
 
 	@Override
 	public Collection<Abstraction> propagateReturnFlow(Collection<Abstraction> callerD1s, Abstraction source, Stmt stmt,
 			Stmt retSite, Stmt callSite, ByReferenceBoolean killAll) {
 //		// Check whether this return is treated as a sink
-//		if (stmt instanceof ReturnStmt) {
-//			final ReturnStmt returnStmt = (ReturnStmt) stmt;
-//			boolean matches = source.getAccessPath().isLocal() || source.getAccessPath().getTaintSubFields();
-//			if (matches && source.isAbstractionActive() && getManager().getSourceSinkManager() != null
-//					&& getAliasing().mayAlias(source.getAccessPath().getPlainValue(), returnStmt.getOp())) {
-//				SinkInfo sinkInfo = getManager().getSourceSinkManager().getSinkInfo(returnStmt, getManager(),
-//						source.getAccessPath());
-//				if (sinkInfo != null
-//						&& !getResults().addResult(new AbstractionAtSink(sinkInfo.getDefinition(), source, returnStmt)))
-//					killState = true;
-//			}
-//		}
-		//lifecycle-add，在判断时，不需要关注return x里的这个x是哪个，只要关注这个是不是最后的return语句就行了
-			final ISourceSinkManager sourceSinkManager = getManager().getSourceSinkManager();
-			if (sourceSinkManager != null && source.isAbstractionActive()) {
-				SinkInfo sinkInfo = sourceSinkManager.getSinkInfo(stmt, getManager(), source.getAccessPath());
-				if (sinkInfo != null) {
-					if (!getResults().addResult(new AbstractionAtSink(sinkInfo.getDefinition(), source, stmt))) {
-						killAll.value = true;
-					} else {
+		//这里的sink主要有2个，一个是到达最后一行，另一个是当前的aps无法传递至函数外
+		AccessPath ap = source.getAccessPath();
+		if (null == ap) {
+			killAll.value = true;
+			return null;
+			//ap为null肯定有问题
+		}
+		if (source.isAbstractionActive()) {
+			return null;
+		}
+		//这个是第一种
+		final ISourceSinkManager sourceSinkManager = getManager().getSourceSinkManager();
+
+		SinkInfo sink1Info = sourceSinkManager.getSinkInfo(stmt, getManager(), null);
+		if (sink1Info != null) {
+			if (!getResults().addResult(new AbstractionAtSink(sink1Info.getDefinition(), source, stmt))) {
+				killAll.value = true;
+				return null;
+			} else {
 //						System.out.println();
-					}
+			}
+		}
+
+		boolean isTaintReturned = true;
+		if (retSite instanceof ReturnStmt) {
+			Value returnop = ((ReturnStmt)retSite).getOp();
+			isTaintReturned = getAliasing().mayAlias(returnop, ap.getPlainValue());
+		} else if (retSite instanceof ReturnVoidStmt) {
+			isTaintReturned = false;
+		}
+		SourceSinkDefinition def = MyOwnUtils.getOriginalSource(source);
+		//下面的是第二种，且需要注意，staticfield只能用第一条来处理，因此需要进行检查
+		if (!isTaintReturned && !isTaintVisibleInCallee(callSite, source) && !ap.isStaticFieldRef()) {
+			//此时ap值无法传播至函数外
+			if (TaintPropagationResults.shouldBeKilledForReturnStmts(def, stmt)) {
+				//说明其他alias的taint可以传递出这个函数，那么这个就是假的leak，不需要加进result
+				killAll.value = true;
+				return null;
+			} else {
+				SinkInfo sink2Info = sourceSinkManager.getSPSinkInfo(stmt, getManager(), "exit");
+				if (!getResults().addResult(new AbstractionAtSink(sink2Info.getDefinition(), source, stmt))) {
+					killAll.value = true;
+					return null;
 				}
 			}
+
+		} else {
+			//此时说明，它的值还是传递到了函数外
+			TaintPropagationResults.addReturnStmts(def, stmt);
+		}
+		//如果两个
 
 		return null;
 	}

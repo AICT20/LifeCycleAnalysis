@@ -627,6 +627,7 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 		final PathEdge<N, D> edge = new PathEdge<N, D>(sourceVal, target, targetVal);
 		final D existingVal = addFunction(edge);
 		if (existingVal != null) {
+			//这里edge已经执行过了
 			if (existingVal != targetVal) {
 				// Check whether we need to retain this abstraction
 				boolean isEssential;
@@ -641,6 +642,7 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 				}
 			}
 		} else {
+			//这里edge还未执行过
 			// If this is an inactive abstraction and we have already processed
 			// its active counterpart, we can skip this one
 			D activeVal = targetVal.getActiveCopy();

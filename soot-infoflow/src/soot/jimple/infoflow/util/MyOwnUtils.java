@@ -3,6 +3,7 @@ package soot.jimple.infoflow.util;
 import soot.Value;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,18 +35,17 @@ public class MyOwnUtils {
         return true;
     }
 
-    //用于找到Abstraction中，与给定value相同的ap
-    public static Set<AccessPath> getEqualAP(Abstraction source, Value value) {
-        Set<AccessPath> results = new HashSet();
-        Set<AccessPath> aps = source.getAccessPaths();
-        if (null == aps || aps.isEmpty()) {
-            return results;
-        }
-        for (AccessPath ap : aps) {
-            if (source == ap.getPlainValue()) {
-                results.add(ap);
+    public static SourceSinkDefinition getOriginalSource(Abstraction abs) {
+        while (abs.getSourceContext() == null) {
+            Abstraction temp = abs.getPredecessor();
+            if (null != temp) {
+                abs = temp;
+            } else {
+                return null;
             }
         }
-        return results;
+        return abs.getSourceContext().getDefinition();
     }
+
+
 }

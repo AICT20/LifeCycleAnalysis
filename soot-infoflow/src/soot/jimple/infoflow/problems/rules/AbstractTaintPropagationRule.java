@@ -4,6 +4,7 @@ import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.aliasing.Aliasing;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 
 /**
  * Abstract base class for all taint propagation rules
@@ -39,5 +40,6 @@ public abstract class AbstractTaintPropagationRule implements ITaintPropagationR
 	protected TaintPropagationResults getResults() {
 		return this.results;
 	}
+
 
 }

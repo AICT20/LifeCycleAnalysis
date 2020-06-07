@@ -43,12 +43,12 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected AccessPath accessPath;
 
 	protected Abstraction predecessor = null;
-	protected Set<Abstraction> neighbors = null;
+	protected Set<Abstraction> neighbors = null; //neighbor是只有currentStmt不同的Abs，它们就相当于同一block里的不同语句
 	protected Stmt currentStmt = null;
 	protected Stmt correspondingCallSite = null;
 
 	protected SourceContext sourceContext = null;
-	protected = null;
+	protected Set<Stmt> killStmts = null;
 	/**
 	 * Unit/Stmt which activates the taint when the abstraction passes it
 	 */
@@ -128,6 +128,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 					return false;
 			} else if (!abs1.currentStmt.equals(abs2.currentStmt))
 				return false;
+			if (abs1.killStmts == null || abs1.killStmts.isEmpty()) {
+				if (abs2.killStmts != null && !abs2.killStmts.isEmpty())
+					return false;
+			} else if (abs2.killStmts != null && ! abs2.killStmts.isEmpty()) {
+				if (!MyOwnUtils.setCompare(abs1.killStmts, abs2.killStmts)) {
+					return false;
+				}
+			}
 
 			return abs1.localEquals(abs2);
 		}
@@ -145,7 +153,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		this.accessPath = apToTaint;
 		this.activationUnit = null;
 		this.exceptionThrown = exceptionThrown;
-
+		this.killStmts = null;
 		this.neighbors = null;
 		this.isImplicit = isImplicit;
 		this.currentStmt = sourceContext == null ? null : sourceContext.getStmt();
@@ -168,6 +176,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			sourceContext = original.sourceContext;
 			exceptionThrown = original.exceptionThrown;
 			activationUnit = original.activationUnit;
+			killStmts = new HashSet<>(original.killStmts);
 			assert activationUnit == null || flowSensitiveAliasing;
 
 			postdominators = original.postdominators == null ? null
@@ -211,11 +220,25 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		return a;
 	}
 
+	//lifecycle-add
+	public Abstraction deriveNewAbstractionOnKill(Stmt killStmt) {
+		if (null != this.killStmts && this.killStmts.contains(killStmt)) {
+			return this;
+		}
+		Abstraction abs = clone();
+		abs.currentStmt = killStmt;
+		abs.sourceContext = null;
+		if (null == abs.killStmts) {
+			abs.killStmts = new HashSet<>();
+		}
+		abs.killStmts.add(killStmt);
+		return abs;
+	}
+
 	public Abstraction deriveNewAbstraction(AccessPath p, Stmt currentStmt) {
 		return deriveNewAbstraction(p, currentStmt, isImplicit);
 	}
 
-	//需要重写
 	public Abstraction deriveNewAbstraction(AccessPath p, Stmt currentStmt, boolean isImplicit) {
 		// If the new abstraction looks exactly like the current one, there is
 		// no need to create a new object
@@ -312,6 +335,10 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 
 	public Unit getActivationUnit() {
 		return this.activationUnit;
+	}
+
+	public Set<Stmt> getKillStmts() {
+		return this.killStmts;
 	}
 
 	public Abstraction getActiveCopy() {
@@ -426,7 +453,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 				return false;
 		} else if (!(accessPath.equals(other.accessPath)))
 			return false;
-
+		if (killStmts == null || other.killStmts.isEmpty()) {
+			if (killStmts != null && !other.killStmts.isEmpty())
+				return false;
+		} else if (killStmts != null && ! other.killStmts.isEmpty()) {
+			if (!MyOwnUtils.setCompare(killStmts, other.killStmts)) {
+				return false;
+			}
+		}
 		return localEquals(other);
 	}
 
@@ -445,12 +479,11 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 				return false;
 		} else if (!sourceContext.equals(other.sourceContext))
 			return false;
-		//下面的移到accesspath里了，不用管
-//		if (activationUnit == null) {
-//			if (other.activationUnit != null)
-//				return false;
-//		} else if (!activationUnit.equals(other.activationUnit))
-//			return false;
+		if (activationUnit == null) {
+			if (other.activationUnit != null)
+				return false;
+		} else if (!activationUnit.equals(other.activationUnit))
+			return false;
 		if (this.exceptionThrown != other.exceptionThrown)
 			return false;
 		if (postdominators == null) {
@@ -540,8 +573,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			return false;
 
 		// We should not add identical nodes as neighbors
-		if (this.predecessor == originalAbstraction.predecessor && this.currentStmt == originalAbstraction.currentStmt
-				&& this.predecessor == originalAbstraction.predecessor)
+		if (this.predecessor == originalAbstraction.predecessor && this.currentStmt == originalAbstraction.currentStmt)
 			return false;
 
 		synchronized (this) {
@@ -561,6 +593,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			}
 			return this.neighbors.add(originalAbstraction);
 		}
+	}
+
+	@Override
+	public boolean removeNeighbor(Abstraction originalAbstraction) {
+		if (neighbors == null) {
+			return true;
+		}
+		return neighbors.remove(originalAbstraction);
 	}
 
 	public void setCorrespondingCallSite(Stmt callSite) {
@@ -637,17 +677,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		abs.sourceContext = sourceContext;
 		abs.currentStmt = this.currentStmt;
 		return abs;
-	}
-
-	//lifecycle-add 由于memory不怎么用，所以先停了
-	/**
-	 * For internal use by memory manager only
-	 */
-	void setAccessPath(AccessPath accessPath) {
-		throw new RuntimeException("Error : method 'setAccessPath' is invoked!!");
-//		this.accessPath = accessPath;
-//		this.hashCode = 0;
-//		this.neighborHashCode = 0;
 	}
 
 	void setCurrentStmt(Stmt currentStmt) {
