@@ -215,7 +215,7 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		createIfStmt(onResumeStmt);
 		// createIfStmt(onCreateStmt); // no, the process gets killed in between
 
-		// 5. onStop:
+		// 5. onStop:   //TODo 暂时把这个给停了看看
 		Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
 		boolean hasAppOnStop = false;
 		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {

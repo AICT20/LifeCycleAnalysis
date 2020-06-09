@@ -1,11 +1,9 @@
 package soot.jimple.infoflow.problems;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import soot.SootMethod;
 import soot.Unit;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowManager;
@@ -151,7 +149,8 @@ public class TaintPropagationResults {
 				Set<Stmt> defkillStmts = allkillStmts.get(sourceDef);
 				if (null != defkillStmts && !defkillStmts.isEmpty()) {
 					Set<Stmt> tempSet = new HashSet(currentkillStmts);
-					if (tempSet.retainAll(defkillStmts)) {
+					tempSet.retainAll(defkillStmts);
+					if (!tempSet.isEmpty()) {
 						//如果有交集，说明当前的这个记录是错误的，应当删除
 						continue;
 					}
@@ -160,29 +159,40 @@ public class TaintPropagationResults {
 			}
 			//再处理returnstmt
 			Set<Stmt> defreturnStmts = allreturnStmts.get(sourceDef);
-			if (null != defreturnStmts && !defreturnStmts.isEmpty() && defreturnStmts.contains(absink.getSinkStmt())) {
+			if (null != defreturnStmts && defreturnStmts.contains(absink.getSinkStmt())) {
 				continue;
 			}
 
 			newresults.put(absink, abs);
 		}
+//		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
+//			Abstraction abs = entry.getValue();
+//			LinkedList<SootMethod> preMethods = new LinkedList();
+//			LinkedList<Stmt> preStmts = new LinkedList();
+//			Abstraction currentAbs = abs;
+//			while (null != currentAbs) {
+//				preStmts.add(currentAbs.getCurrentStmt());
+//				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
+//				currentAbs = currentAbs.getPredecessor();
+//			}
+//
+//			if (abs.getKillStmts() == null) {
+//				System.out.println();
+//			}
+//		}
 
 		this.results = newresults;
-
-
-		newresults = new MyConcurrentHashMap();
-		for (Map.Entry<AbstractionAtSink, Abstraction> entry : this.results.entrySet()) {
-
-		}
 	}
 
 
 	//lifecycle-add 我们加一点对于killstmt的全局内容 注意！！！这个allkillStmts仅针对当前的单个taint
 	public static void initLCResults() {
 		allkillStmts = new ConcurrentHashMap<>();
+		allreturnStmts = new ConcurrentHashMap<>();
 	}
 	public static void clearLCResults() {
 		allkillStmts.clear();
+		allreturnStmts.clear();
 	}
 	protected static Map<SourceSinkDefinition, Set<Stmt>> allkillStmts = null;//保存所有的kill操作的位置
 	public static boolean addKillStmts(SourceSinkDefinition def, Stmt stmt) {
@@ -217,12 +227,12 @@ public class TaintPropagationResults {
 	public static boolean shouldBeKilledForReturnStmts(SourceSinkDefinition def, Stmt stmt) {
 		Set<Stmt> returnstmts = allreturnStmts.get(def);
 		if (null == returnstmts) {
-			return true;
+			return false;
 		}
 		if (!returnstmts.contains(stmt)) {
-			return true;
+			return false;
 		}
-		return false;
+		return true;
 	}
 
 

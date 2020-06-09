@@ -103,9 +103,7 @@ public class BackwardsInfoflowProblem extends AbstractInfoflowProblem {
 
 			/**
 			 * Computes the aliases for the given statement
-			 * 
-			 * @param def       The definition statement from which to extract the alias
-			 *                  information
+			 *
 			 * @param leftValue The left side of def. Passed in to allow for caching, no
 			 *                  need to recompute this for every abstraction being
 			 *                  processed.
@@ -184,7 +182,7 @@ public class BackwardsInfoflowProblem extends AbstractInfoflowProblem {
 				// we must not taint the left side. We can only taint
 				// the left side if the tainted value is some "x.y".
 				boolean aliasOverwritten = Aliasing.baseMatchesStrict(rightValue, source)
-						&& rightValue.getType() instanceof RefType && !source.dependsOnCutAP();
+						&& rightValue.getType() instanceof RefType;
 
 				if (!aliasOverwritten && !(rightValue.getType() instanceof PrimType)) {
 					// If the tainted value 'b' is assigned to variable 'a' and

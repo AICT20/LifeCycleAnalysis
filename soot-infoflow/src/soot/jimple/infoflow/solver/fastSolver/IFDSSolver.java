@@ -295,6 +295,7 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 
 				@Override
 				public void accept(SootMethod sCalledProcN) {
+
 					// Early termination check
 					if (killFlag != null)
 						return;
@@ -747,34 +748,17 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 			Abstraction ab = (Abstraction)edge.factAtTarget();
 			SootMethod mainm = Scene.v().getEntryPoints().get(0);
 			N n = edge.getTarget();
-			if (m.getName().equals("dummyMainMethod_org_microg_gms_ui_AskPushPermission")) {
-				System.out.println();
-			}
 
-			if(n.toString().contains("virtualinvoke $r0.<org.microg.gms.ui.AskPushPermission: void onStop()")) {
-				System.out.println();
-			}
-
-
-			if (n.toString().contains("return $r0") && m.getName().contains("dummyMainMethod")) {
-				if (!previousNsForTest.contains(previousN)) {
-					System.out.println();
-					previousNsForTest.add((Unit)previousN);
-				}
-			}
-			if (n.toString().contains("if $i0 == 148 goto")) {
-				//这句有问题，会乱跳
-				if (icfg.getSuccsOf(n).size() != 2) {
-					System.out.println();
-				}
-			}
-
-
-			for(N tempn :icfg.getEndPointsOf(mainm)){
-				if (tempn == n){
-					System.out.println();
-				}
-			}
+			Stmt stmt = (Stmt)n;
+//			if (stmt.toString().contains("if $i0 == 8 goto") && null == ab.getKillStmts()) {
+//				System.out.println();
+//			}
+//
+//			if (stmt.toString().contains("return $r0") && m.getName().equals("dummyMainMethod_org_microg_gms_ui_AskPushPermission")) {
+//				if (!previousN.toString().contains("if $i0 == 10")) {
+//					System.out.println();
+//				}
+//			}
 
 			if (icfg.isCallStmt(edge.getTarget())) {
 				processCall(edge);
@@ -782,7 +766,10 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 				// note that some statements, such as "throw" may be
 				// both an exit statement and a "normal" statement
 				if (icfg.isExitStmt(edge.getTarget())) {
-					if (m.getName().equals("onStop")) {
+//					if (m.getSignature().contains("<org.microg.gms.ui.AskPushPermission$2: void <init>(org.microg.gms.ui.AskPushPermission)>")) {
+//						System.out.println();
+//					}
+					if (m.getName().equals("onStop") && ab.getKillStmts() == null) {
 						System.out.println();
 					}
 					processExit(edge);

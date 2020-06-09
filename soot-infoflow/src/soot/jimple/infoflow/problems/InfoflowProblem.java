@@ -451,11 +451,20 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						if (killAll.value)
 							return null;
 
+						//lifecycle-add 现在策略采用，只要不是系统lib的函数，都需要跳转进去；因此，这里要把原来函数外的source也添加进去
+						if (res == null) {
+							res = new HashSet<>();
+						}
 						// Map the source access path into the callee
 						Set<AccessPath> resMapping = mapAccessPathToCallee(dest, ie, paramLocals, thisLocal,
 								source.getAccessPath());
-						if (resMapping == null)
+						if (resMapping == null) {
+							//当没有对应参数时，自身也要传递进去
+							Abstraction newSource = source.deriveNewAbstractionOnCallAndReturn(stmt);
+							res.add(newSource);
 							return res;
+						}
+						//而如果有对应参数可以传递进去时，不需要把自身也传递进去
 
 						// Translate the access paths into abstractions
 						Set<Abstraction> resAbs = new HashSet<Abstraction>(resMapping.size());
@@ -557,11 +566,6 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						// This can happen when leaving the main method.
 						if (callSite == null)
 							return null;
-
-						// Do we need to retain all the taints?
-						if (aliasing.getAliasingStrategy().isLazyAnalysis()
-								&& Aliasing.canHaveAliases(newSource.getAccessPath()))
-							res.add(newSource);
 
 						// Static fields are handled in a rule
 						if (!newSource.getAccessPath().isStaticFieldRef() && !callee.isStaticInitializer()) {
@@ -697,6 +701,14 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 							}
 						}
 
+						//lifecycle-add 所有taint再return时都要进行返回：
+						// (1)如果taint与返回值或者函数参数有关，能正常返回，则不变；
+						// (2)如果正常情况下不返回，则添加一条原本的进行返回；
+						if (res.isEmpty() && Aliasing.canHaveAliases(newSource.getAccessPath())) {
+							newSource = newSource.deriveNewAbstractionOnCallAndReturn((Stmt)exitStmt);
+							res.add(newSource);
+						}
+
 						for (Abstraction abs : res) {
 							// Aliases of implicitly tainted variables must be
 							// mapped back into the caller's context on return
@@ -779,7 +791,6 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 								killSource, killAll, true);
 						if (killAll.value)
 							return null;
-						boolean passOn = !killSource.value;
 
 						// Do not propagate zero abstractions
 						if (source == getZeroValue())
@@ -793,79 +804,85 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 								&& newSource.getTopPostdominator().getUnit() == null)
 							return Collections.singleton(newSource);
 
-						// Static taints must always go through the callee
-						if (newSource.getAccessPath().isStaticFieldRef())
-							passOn = false;
-
-						// we only can remove the taint if we step into the
-						// call/return edges
-						// otherwise we will loose taint - see
-						// ArrayTests/arrayCopyTest
-						if (passOn && invExpr instanceof InstanceInvokeExpr
-								&& (manager.getConfig().getInspectSources() || !isSource)
-								&& (manager.getConfig().getInspectSinks() || !isSink)
-								&& newSource.getAccessPath().isInstanceFieldRef() && (hasValidCallees
-								|| (taintWrapper != null && taintWrapper.isExclusive(iCallStmt, newSource)))) {
-							// If one of the callers does not read the value, we
-							// must pass it on in any case
-							boolean allCalleesRead = true;
-							outer: for (SootMethod callee : interproceduralCFG().getCalleesOfCallAt(call)) {
-								if (callee.isConcrete() && callee.hasActiveBody()) {
-									Set<AccessPath> calleeAPs = mapAccessPathToCallee(callee, invExpr, null, null,
-											source.getAccessPath());
-									if (calleeAPs != null) {
-										for (AccessPath ap : calleeAPs) {
-											if (ap != null) {
-												if (!interproceduralCFG().methodReadsValue(callee,
-														ap.getPlainValue())) {
-													allCalleesRead = false;
-													break outer;
-												}
-											}
-										}
-									}
-								}
-
-								// Additional check: If all callees are library
-								// classes, we pass it on as well
-								if (isExcluded(callee)) {
-									allCalleesRead = false;
-									break;
-								}
-							}
-
-							if (allCalleesRead) {
-								if (aliasing.mayAlias(((InstanceInvokeExpr) invExpr).getBase(),
-										newSource.getAccessPath().getPlainValue())) {
-									passOn = false;
-								}
-								if (passOn)
-									for (int i = 0; i < callArgs.length; i++)
-										if (aliasing.mayAlias(callArgs[i], newSource.getAccessPath().getPlainValue())) {
-											passOn = false;
-											break;
-										}
-								// static variables are always propagated if
-								// they are not overwritten. So if we have at
-								// least one call/return edge pair,
-								// we can be sure that the value does not get
-								// "lost" if we do not pass it on:
-								if (newSource.getAccessPath().isStaticFieldRef())
-									passOn = false;
-							}
+						//lifecycle-add 这里大改一下，只有isExcluded的时候才能跳过，不然都需要执行getCallFlowFunction
+						boolean passOn = false;
+						if (isExcluded(callee)) {
+							passOn = true && !killSource.value;
 						}
 
-						// If the callee does not read the given value, we also
-						// need to pass it on since we do not propagate it into
-						// the callee.
-						if (source.getAccessPath().isStaticFieldRef()) {
-							if (!interproceduralCFG().isStaticFieldUsed(callee, source.getAccessPath().getFirstField()))
-								passOn = true;
-						}
-
-						// Implicit taints are always passed over conditionally
-						// called methods
-						passOn |= source.getTopPostdominator() != null || source.getAccessPath().isEmpty();
+//						// Static taints must always go through the callee
+//						if (newSource.getAccessPath().isStaticFieldRef())
+//							passOn = false;
+//
+//						// we only can remove the taint if we step into the
+//						// call/return edges
+//						// otherwise we will loose taint - see
+//						// ArrayTests/arrayCopyTest
+//						if (passOn && invExpr instanceof InstanceInvokeExpr
+//								&& (manager.getConfig().getInspectSources() || !isSource)
+//								&& (manager.getConfig().getInspectSinks() || !isSink)
+//								&& newSource.getAccessPath().isInstanceFieldRef() && (hasValidCallees
+//								|| (taintWrapper != null && taintWrapper.isExclusive(iCallStmt, newSource)))) {
+//							// If one of the callers does not read the value, we
+//							// must pass it on in any case
+//							boolean allCalleesRead = true;
+//							outer: for (SootMethod callee : interproceduralCFG().getCalleesOfCallAt(call)) {
+//								if (callee.isConcrete() && callee.hasActiveBody()) {
+//									Set<AccessPath> calleeAPs = mapAccessPathToCallee(callee, invExpr, null, null,
+//											source.getAccessPath());
+//									if (calleeAPs != null) {
+//										for (AccessPath ap : calleeAPs) {
+//											if (ap != null) {
+//												if (!interproceduralCFG().methodReadsValue(callee,
+//														ap.getPlainValue())) {
+//													allCalleesRead = false;
+//													break outer;
+//												}
+//											}
+//										}
+//									}
+//								}
+//
+//								// Additional check: If all callees are library
+//								// classes, we pass it on as well
+//								if (isExcluded(callee)) {
+//									allCalleesRead = false;
+//									break;
+//								}
+//							}
+//
+//							if (allCalleesRead) {
+//								if (aliasing.mayAlias(((InstanceInvokeExpr) invExpr).getBase(),
+//										newSource.getAccessPath().getPlainValue())) {
+//									passOn = false;
+//								}
+//								if (passOn)
+//									for (int i = 0; i < callArgs.length; i++)
+//										if (aliasing.mayAlias(callArgs[i], newSource.getAccessPath().getPlainValue())) {
+//											passOn = false;
+//											break;
+//										}
+//								// static variables are always propagated if
+//								// they are not overwritten. So if we have at
+//								// least one call/return edge pair,
+//								// we can be sure that the value does not get
+//								// "lost" if we do not pass it on:
+//								if (newSource.getAccessPath().isStaticFieldRef())
+//									passOn = false;
+//							}
+//						}
+//
+//						// If the callee does not read the given value, we also
+//						// need to pass it on since we do not propagate it into
+//						// the callee.
+//						if (source.getAccessPath().isStaticFieldRef()) {
+//							if (!interproceduralCFG().isStaticFieldUsed(callee, source.getAccessPath().getFirstField()))
+//								passOn = true;
+//						}
+//
+//						// Implicit taints are always passed over conditionally
+//						// called methods
+//						passOn |= source.getTopPostdominator() != null || source.getAccessPath().isEmpty();
 						if (passOn) {
 							if (newSource != getZeroValue())
 								res.add(newSource);

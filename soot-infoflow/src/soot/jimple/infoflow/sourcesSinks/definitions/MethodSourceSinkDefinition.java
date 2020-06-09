@@ -463,4 +463,13 @@ public class MethodSourceSinkDefinition extends SourceSinkDefinition {
 		}
 	}
 
+	//lifecycle-add
+	public String getResourceType() {
+		String result = "unknown";
+		if (this.method.getSignature().toString().contains("org.microg.gms.gcm.GcmDatabase: void <init>")) {
+			return "database";
+		}
+		return result;
+	}
+
 }

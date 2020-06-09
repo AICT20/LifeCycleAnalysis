@@ -242,6 +242,12 @@ public class Infoflow extends AbstractInfoflow {
 	private void runAnalysis(final ISourceSinkManager sourcesSinks, final Set<String> additionalSeeds) {
 		final InfoflowPerformanceData performanceData = new InfoflowPerformanceData();
 		try {
+			//TODO 测试，将tainwrapper改为null
+			// 因为我们实际上有kill的操作，wrapper这类进行summary的操作其实并没有对kill的一个回退更新
+			// 目前来看，似乎可以，但还不确定
+			this.taintWrapper = null;
+
+
 			// Clear the data from previous runs
 			results = new InfoflowResults();
 
@@ -300,7 +306,7 @@ public class Infoflow extends AbstractInfoflow {
 					config.getEnableExceptionTracking());
 			//lifecycle-add
 			sourcesSinks.updateSinkInfoWithICFG(iCfg);
-
+			TaintPropagationResults.initLCResults();
 			//lifecycle-add 测试用
 //			SootClass testclass = Scene.v().getSootClass("android.database.sqlite.SQLiteOpenHelper");
 //			for (SootMethod m : testclass.getMethods()) {
@@ -520,6 +526,8 @@ public class Infoflow extends AbstractInfoflow {
 					// from memory
 					onTaintPropagationCompleted();
 
+					//lifecycle-add 在退出前更新下
+					propagationResults.initialDataProcessing();
 					// Get the result abstractions
 					Set<AbstractionAtSink> res = propagationResults.getResults();
 					propagationResults = null;
@@ -579,6 +587,8 @@ public class Infoflow extends AbstractInfoflow {
 					if (manager != null)
 						manager.cleanup();
 					manager = null;
+
+					TaintPropagationResults.clearLCResults();
 
 					// Report the remaining memory consumption
 					Runtime.getRuntime().gc();

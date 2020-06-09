@@ -14,7 +14,6 @@ import java.util.*;
 
 import gnu.trove.set.hash.TCustomHashSet;
 import gnu.trove.strategy.HashingStrategy;
-import org.graalvm.compiler.nodes.memory.Access;
 import soot.SootMethod;
 import soot.Unit;
 import soot.jimple.Stmt;
@@ -131,7 +130,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			if (abs1.killStmts == null || abs1.killStmts.isEmpty()) {
 				if (abs2.killStmts != null && !abs2.killStmts.isEmpty())
 					return false;
-			} else if (abs2.killStmts != null && ! abs2.killStmts.isEmpty()) {
+			} else if (abs2.killStmts != null && !abs2.killStmts.isEmpty()) {
 				if (!MyOwnUtils.setCompare(abs1.killStmts, abs2.killStmts)) {
 					return false;
 				}
@@ -176,7 +175,9 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			sourceContext = original.sourceContext;
 			exceptionThrown = original.exceptionThrown;
 			activationUnit = original.activationUnit;
-			killStmts = new HashSet<>(original.killStmts);
+			if (null != original.killStmts) {
+				killStmts = new HashSet<>(original.killStmts);
+			}
 			assert activationUnit == null || flowSensitiveAliasing;
 
 			postdominators = original.postdominators == null ? null
@@ -232,6 +233,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			abs.killStmts = new HashSet<>();
 		}
 		abs.killStmts.add(killStmt);
+		return abs;
+	}
+
+	//lifecycle-add
+	public Abstraction deriveNewAbstractionOnCallAndReturn(Stmt callorreturnStmt) {
+		Abstraction abs = clone();
+		abs.currentStmt = callorreturnStmt;
+		abs.sourceContext = null;
 		return abs;
 	}
 
@@ -453,10 +462,10 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 				return false;
 		} else if (!(accessPath.equals(other.accessPath)))
 			return false;
-		if (killStmts == null || other.killStmts.isEmpty()) {
-			if (killStmts != null && !other.killStmts.isEmpty())
+		if (killStmts == null || killStmts.isEmpty()) {
+			if (other.killStmts != null && !other.killStmts.isEmpty())
 				return false;
-		} else if (killStmts != null && ! other.killStmts.isEmpty()) {
+		} else if (other.killStmts != null && ! other.killStmts.isEmpty()) {
 			if (!MyOwnUtils.setCompare(killStmts, other.killStmts)) {
 				return false;
 			}
@@ -508,16 +517,22 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 
 		// deliberately ignore prevAbs
 		result = prime * result + ((sourceContext == null) ? 0 : sourceContext.hashCode());
-		int apHashCode = 0;
-		if (null != accessPath) {
-			apHashCode = accessPath.hashCode();
-		}
-		result = prime * result + apHashCode;
-//		result = prime * result + ((activationUnit == null) ? 0 : activationUnit.hashCode());
+		result = prime * result + ((accessPath == null) ? 0 : accessPath.hashCode());
+		result = prime * result + ((activationUnit == null) ? 0 : activationUnit.hashCode());
 		result = prime * result + (exceptionThrown ? 1231 : 1237);
 		result = prime * result + ((postdominators == null) ? 0 : postdominators.hashCode());
 //		result = prime * result + (dependsOnCutAP ? 1231 : 1237);
 		result = prime * result + (isImplicit ? 1231 : 1237);
+		//再额外添加一个killStmts的
+		if (null != killStmts && !killStmts.isEmpty()) {
+			int killhash = 0;
+			for (Stmt s : killStmts) {
+				killhash += s.hashCode();
+			}
+			result = prime * result + killhash;
+		}
+
+
 		this.hashCode = result;
 
 		return this.hashCode;

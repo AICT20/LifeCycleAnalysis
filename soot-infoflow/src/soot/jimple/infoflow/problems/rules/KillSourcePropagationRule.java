@@ -10,6 +10,7 @@ import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
 import soot.jimple.infoflow.sourcesSinks.definitions.ExitSourceSinkDefinition;
+import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.infoflow.util.ByReferenceBoolean;
 import soot.jimple.infoflow.util.MyOwnUtils;
@@ -33,9 +34,9 @@ public class KillSourcePropagationRule extends AbstractTaintPropagationRule{
         if (stmt.containsInvokeExpr()) {
             InvokeExpr exp = stmt.getInvokeExpr();
             if (exp instanceof InstanceInvokeExpr) {
-                if (exp.getMethod().getSignature().contains("close")) {
+                if (exp.getMethod().getSignature().equals("<android.database.sqlite.SQLiteOpenHelper: void close()>")) {
                     SourceSinkDefinition def = MyOwnUtils.getOriginalSource(source);
-                    if (null == def || !(def instanceof ExitSourceSinkDefinition)) {
+                    if (null == def || !(def instanceof MethodSourceSinkDefinition) || !((MethodSourceSinkDefinition)def).getResourceType().equals("database")) {
                         return null;
                     }
                     InstanceInvokeExpr baseexp = (InstanceInvokeExpr) exp;

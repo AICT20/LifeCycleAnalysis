@@ -1,15 +1,22 @@
 package soot.jimple.infoflow.problems.rules;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
+import soot.Local;
 import soot.SootMethod;
+import soot.Unit;
 import soot.Value;
 import soot.jimple.*;
+import soot.jimple.infoflow.Infoflow;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AbstractionAtSink;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
+import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 import soot.jimple.infoflow.sourcesSinks.manager.SinkInfo;
@@ -59,9 +66,22 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 	@Override
 	public Collection<Abstraction> propagateCallFlow(Abstraction d1, Abstraction source, Stmt stmt, SootMethod dest,
 			ByReferenceBoolean killAll) {
-		// If we are in the kill state, we stop the analysis
-//		if (killAll != null)
-//			killAll.value |= killState;
+//		if (isTaintVisibleInCallee(stmt, source) && source.isAbstractionActive()) {
+//			//这个时候，这个是 method(a) a taint的情况，因此当这个method return时，a也始终可在函数外被kill
+//			//需要将这个method的所有return语句加入allreturnstmts
+//			SourceSinkDefinition def = MyOwnUtils.getOriginalSource(source);
+//			if (null != def) {
+//				IInfoflowCFG icfg = getManager().getICFG();
+////				if (dest.getName().contains("onException")) {
+////					System.out.println();
+////				}
+//				Collection<Unit> returnStmts = icfg.getEndPointsOf(dest);
+//				for (Unit u: returnStmts) {
+//					TaintPropagationResults.addReturnStmts(def, (Stmt)u);
+//				}
+//
+//			}
+//		}
 
 		return null;
 	}
@@ -106,7 +126,6 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 	@Override
 	public Collection<Abstraction> propagateCallToReturnFlow(Abstraction d1, Abstraction source, Stmt stmt,
 			ByReferenceBoolean killSource, ByReferenceBoolean killAll) {
-
 		return null;
 	}
 
@@ -122,7 +141,7 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 			return null;
 			//ap为null肯定有问题
 		}
-		if (source.isAbstractionActive()) {
+		if (!source.isAbstractionActive()) {
 			return null;
 		}
 		//这个是第一种
@@ -138,36 +157,56 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 			}
 		}
 
-		boolean isTaintReturned = true;
-		if (retSite instanceof ReturnStmt) {
-			Value returnop = ((ReturnStmt)retSite).getOp();
-			isTaintReturned = getAliasing().mayAlias(returnop, ap.getPlainValue());
-		} else if (retSite instanceof ReturnVoidStmt) {
-			isTaintReturned = false;
-		}
-		SourceSinkDefinition def = MyOwnUtils.getOriginalSource(source);
-		//下面的是第二种，且需要注意，staticfield只能用第一条来处理，因此需要进行检查
-		if (!isTaintReturned && !isTaintVisibleInCallee(callSite, source) && !ap.isStaticFieldRef()) {
-			//此时ap值无法传播至函数外
-			if (TaintPropagationResults.shouldBeKilledForReturnStmts(def, stmt)) {
-				//说明其他alias的taint可以传递出这个函数，那么这个就是假的leak，不需要加进result
-				killAll.value = true;
-				return null;
-			} else {
-				SinkInfo sink2Info = sourceSinkManager.getSPSinkInfo(stmt, getManager(), "exit");
-				if (!getResults().addResult(new AbstractionAtSink(sink2Info.getDefinition(), source, stmt))) {
-					killAll.value = true;
-					return null;
-				}
-			}
-
-		} else {
-			//此时说明，它的值还是传递到了函数外
-			TaintPropagationResults.addReturnStmts(def, stmt);
-		}
-		//如果两个
+		//现在只使用第一种，因为第二种还是有个Alias的问题解决不了
+//		SourceSinkDefinition def = MyOwnUtils.getOriginalSource(source);
+//		//下面的是第二种，且需要注意，staticfield只能用第一条来处理，因此需要进行检查
+//		if (!ap.isStaticFieldRef() && !canTaintExitFromReturn(callSite, stmt, ap)) {
+//			//此时taint无法传播至函数外
+//			if (TaintPropagationResults.shouldBeKilledForReturnStmts(def, stmt)) {
+//				//说明其他alias的taint可以传递出这个函数，那么这个就是假的leak，不需要加进result
+//				killAll.value = true;
+//				return null;
+//			} else {
+//				SinkInfo sink2Info = sourceSinkManager.getSPSinkInfo(stmt, getManager(), "exit");
+//				if (!getResults().addResult(new AbstractionAtSink(sink2Info.getDefinition(), source, stmt))) {
+//					killAll.value = true;
+//					return null;
+//				}
+//			}
+//
+//		} else {
+//			//此时说明，它的值还是传递到了函数外
+//			TaintPropagationResults.addReturnStmts(def, stmt);
+//		}
 
 		return null;
 	}
 
+	public boolean canTaintExitFromReturn(Stmt callSite, Stmt currentReturnStmt, AccessPath ap) {
+		if (callSite instanceof DefinitionStmt && currentReturnStmt instanceof ReturnStmt) {
+			//这里是 a = b.method(x){return d taint} 或者 a = method(x)的情况；
+			Value returnop = ((ReturnStmt)currentReturnStmt).getOp();
+			if (getAliasing().mayAlias(returnop, ap.getPlainValue())) {
+				return true;
+			}
+		}
+		InvokeExpr expr = callSite.getInvokeExpr();
+		if (expr instanceof InstanceInvokeExpr) {
+			//这里处理a = b.method(x){b.m = taint; return;}或者 a = method(x){x.m = taint; return;}的情况；
+			SootMethod m = getManager().getICFG().getMethodOf(currentReturnStmt);
+			if (!m.isStatic()) {
+				if(getAliasing().mayAlias(m.getActiveBody().getThisLocal(), ap.getPlainValue())) {
+					return true;
+				}
+			}
+			for (Local l : m.getActiveBody().getParameterLocals()) {
+				if(getAliasing().mayAlias(l, ap.getPlainValue())) {
+					return true;
+				}
+			}
+		}
+		//其他的a = b.method(x)    b.m, x.m taint的情况
+
+		return false;
+	}
 }
