@@ -28,6 +28,10 @@ import soot.jimple.Stmt;
 import soot.jimple.infoflow.android.entryPointCreators.AndroidEntryPointConstants;
 import soot.jimple.infoflow.cfg.LibraryClassPatcher;
 import soot.jimple.infoflow.entryPointCreators.SimulatedCodeElementTag;
+import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
+import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterntag.LCFinishBranchTag;
 import soot.util.MultiMap;
 
 /**
@@ -98,6 +102,13 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			// constructors are called
 			createIfStmt(beforeCbCons);
 		}
+		//lifecycle-add 增加了许多语句位置的断点，以通过增加if的语句跳转来实现lifecycle执行顺序的变化
+
+		Pattern1Data pattern1 = PatternDataHelper.v().getPattern1();
+		String pattern1tag = null;
+		if (null != pattern1) {
+			pattern1tag = pattern1.getFinishLocation(component);
+		}
 
 		// 1. onCreate:
 		{
@@ -107,6 +118,16 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 						callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
 			}
 		}
+
+
+		NopStmt pattern1toOnDestroyStmt = null;
+		if (PatternDataConstant.ONCREATESUBSIG.equals(pattern1tag)) {
+			//此时，在onCreate方法中调用了finish()方法
+			pattern1toOnDestroyStmt = Jimple.v().newNopStmt();
+			Stmt currentIf = createIfStmt(pattern1toOnDestroyStmt);
+			currentIf.addTag(new LCFinishBranchTag());
+		}
+
 
 		// Adding the lifecycle of the Fragments that belong to this Activity:
 		// iterate through the fragments detected in the CallbackAnalyzer
@@ -171,6 +192,15 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		}
 		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONPOSTCREATE, component, thisLocal);
 
+
+		NopStmt pattern2toOnStopStmt = null;
+		if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
+			//此时，在onCreate方法中调用了finish()方法
+			pattern2toOnStopStmt = Jimple.v().newNopStmt();
+			Stmt currentIf = createIfStmt(pattern2toOnStopStmt);
+			currentIf.addTag(new LCFinishBranchTag());
+		}
+
 		// 3. onResume:
 		Stmt onResumeStmt = Jimple.v().newNopStmt();
 		body.getUnits().add(onResumeStmt);
@@ -215,7 +245,11 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		createIfStmt(onResumeStmt);
 		// createIfStmt(onCreateStmt); // no, the process gets killed in between
 
-		// 5. onStop:   //TODo 暂时把这个给停了看看
+		// 5. onStop:
+		//lifecycle-add
+		if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
+			body.getUnits().add(pattern2toOnStopStmt);
+		}
 		Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
 		boolean hasAppOnStop = false;
 		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
@@ -238,14 +272,22 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		createIfStmt(onStartStmt); // jump to onStart(), fall through to
 									// onDestroy()
 
+
 		// 7. onDestroy
 		body.getUnits().add(stopToDestroyStmt);
+		//lifecycle-add
+		if (null != pattern1toOnDestroyStmt) {
+			body.getUnits().add(pattern1toOnDestroyStmt);
+		}
 		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONDESTROY, component, thisLocal);
 		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
 			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYDESTROYED,
 					callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
 		}
 	}
+
+
+
 
 	/**
 	 * Generates the lifecycle for an Android Fragment class

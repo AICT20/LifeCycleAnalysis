@@ -1,20 +1,19 @@
 package soot.jimple.infoflow.pattern.patterndata;
 
-import soot.MethodOrMethodContext;
-import soot.Scene;
-import soot.SootMethod;
-import soot.Unit;
+import soot.*;
 import soot.jimple.Stmt;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
-public abstract class PatternData {
+public abstract class PatternData implements PatternInterface{
     protected Set<SootMethod> seedMethods = null;//这里存储的都是onDestroy的方法
     protected BiDiInterproceduralCFG<Unit, SootMethod> icfg = null;
+    protected Map<SootClass, String> involvedEntrypoints = null;
+    public PatternData() {
+        this.involvedEntrypoints = new HashMap<>();
+    }
 
     public Set<Unit> getInitialSeeds() {
         Set<Unit> seeds = new HashSet<Unit>();
@@ -40,7 +39,8 @@ public abstract class PatternData {
     }
 
 
-    abstract public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg);
+
+    abstract public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg); //这个只是npe用，resource leak的话它的seed比较少，比较好控制
     protected Set<SootMethod> searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg, String methodname){
         seedMethods = new HashSet<SootMethod>();
         this.icfg = icfg;
@@ -62,4 +62,13 @@ public abstract class PatternData {
         }
         return seedMethods;
     }
+
+    public void clear() {
+        this.involvedEntrypoints.clear();
+    }
+
+    public String getFinishLocation(SootClass givenclass) {
+        return this.involvedEntrypoints.get(givenclass);
+    }
+
 }

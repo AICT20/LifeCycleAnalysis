@@ -165,21 +165,21 @@ public class TaintPropagationResults {
 
 			newresults.put(absink, abs);
 		}
-//		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
-//			Abstraction abs = entry.getValue();
-//			LinkedList<SootMethod> preMethods = new LinkedList();
-//			LinkedList<Stmt> preStmts = new LinkedList();
-//			Abstraction currentAbs = abs;
-//			while (null != currentAbs) {
-//				preStmts.add(currentAbs.getCurrentStmt());
-//				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
-//				currentAbs = currentAbs.getPredecessor();
-//			}
-//
-//			if (abs.getKillStmts() == null) {
-//				System.out.println();
-//			}
-//		}
+		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
+			Abstraction abs = entry.getValue();
+			LinkedList<SootMethod> preMethods = new LinkedList();
+			LinkedList<Stmt> preStmts = new LinkedList();
+			Abstraction currentAbs = abs;
+			while (null != currentAbs) {
+				preStmts.add(currentAbs.getCurrentStmt());
+				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
+				currentAbs = currentAbs.getPredecessor();
+			}
+
+			if (abs.getKillStmts() == null) {
+				System.out.println();
+			}
+		}
 
 		this.results = newresults;
 	}

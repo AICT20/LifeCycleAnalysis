@@ -13,12 +13,8 @@
  ******************************************************************************/
 package soot.jimple.infoflow.solver.fastSolver;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -43,6 +39,7 @@ import soot.Scene;
 import soot.SootField;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.IfStmt;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.collect.ConcurrentHashSet;
@@ -50,6 +47,7 @@ import soot.jimple.infoflow.collect.MyConcurrentHashMap;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
 import soot.jimple.infoflow.memory.ISolverTerminationReason;
+import soot.jimple.infoflow.pattern.patterntag.LCFinishBranchTag;
 import soot.jimple.infoflow.solver.PredecessorShorteningMode;
 import soot.jimple.infoflow.solver.executors.InterruptableExecutor;
 import soot.jimple.infoflow.solver.executors.SetPoolExecutor;
@@ -562,8 +560,21 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 		final D d1 = edge.factAtSource();
 		final N n = edge.getTarget();
 		final D d2 = edge.factAtTarget();
+		List<N> nextNs = null;
+		if (((Stmt)n).hasTag(LCFinishBranchTag.TAG_NAME)) {
+			if (((Abstraction)d2).isIsfinishing()) {
+				nextNs = new LinkedList<>();
+				nextNs.add((N) ((IfStmt)n).getTarget());
+			} else {
+				nextNs = icfg.getSuccsOf(n);
+				nextNs.remove(((IfStmt)n).getTarget());
+			}
+		} else {
+			nextNs = icfg.getSuccsOf(n);
 
-		for (N m : icfg.getSuccsOf(n)) {
+		}
+
+		for (N m : nextNs) {
 			// Early termination check
 			if (killFlag != null)
 				return;
@@ -754,11 +765,9 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 //				System.out.println();
 //			}
 //
-//			if (stmt.toString().contains("return $r0") && m.getName().equals("dummyMainMethod_org_microg_gms_ui_AskPushPermission")) {
-//				if (!previousN.toString().contains("if $i0 == 10")) {
-//					System.out.println();
-//				}
-//			}
+			if (m.getName().equals("dummyMainMethod_org_microg_gms_ui_AskPushPermission")) {
+				System.out.println();
+			}
 
 			if (icfg.isCallStmt(edge.getTarget())) {
 				processCall(edge);

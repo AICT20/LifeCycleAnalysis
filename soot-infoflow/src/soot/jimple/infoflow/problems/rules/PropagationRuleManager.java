@@ -11,6 +11,7 @@ import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
+import soot.jimple.infoflow.problems.lcrules.KillSourcePropagationRule;
 import soot.jimple.infoflow.util.ByReferenceBoolean;
 
 /**

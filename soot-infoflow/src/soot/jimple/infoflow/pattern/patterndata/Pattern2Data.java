@@ -1,8 +1,12 @@
 package soot.jimple.infoflow.pattern.patterndata;
 
+import soot.SootClass;
 import soot.SootMethod;
 import soot.Unit;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
+
+import java.util.Map;
+import java.util.Set;
 //这里是Pattern2 :
 // onSaveInstanceState 的生命周期发生了改变，变成了在onStop 之后，在API28之前的版本则在onStop之前，且不确定它与onPause的顺序
 
@@ -12,7 +16,17 @@ public class Pattern2Data extends PatternData {
 
     @Override
     public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg) {
-        seedMethods = searchForSeedMethods(icfg, "void onSaveInstanceState(android.os.Bundle)");
+//        seedMethods = searchForSeedMethods(icfg, "void onSaveInstanceState(android.os.Bundle)");
     }
 
+
+    @Override
+    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalInvocationMap) {
+
+    }
+
+    @Override
+    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
+
+    }
 }

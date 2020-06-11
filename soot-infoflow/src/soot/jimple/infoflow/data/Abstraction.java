@@ -47,7 +47,9 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected Stmt correspondingCallSite = null;
 
 	protected SourceContext sourceContext = null;
+	//lifecycle-add
 	protected Set<Stmt> killStmts = null;
+	protected boolean isfinishing = false;
 	/**
 	 * Unit/Stmt which activates the taint when the abstraction passes it
 	 */
@@ -175,6 +177,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			sourceContext = original.sourceContext;
 			exceptionThrown = original.exceptionThrown;
 			activationUnit = original.activationUnit;
+			isfinishing = original.isfinishing;
 			if (null != original.killStmts) {
 				killStmts = new HashSet<>(original.killStmts);
 			}
@@ -233,6 +236,28 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			abs.killStmts = new HashSet<>();
 		}
 		abs.killStmts.add(killStmt);
+		return abs;
+	}
+
+	public Abstraction deriveNewFinishingAbstraction(Stmt currentStmt) {
+		if (this.isfinishing) {
+			return this;
+		}
+		Abstraction abs = clone();
+		abs.currentStmt = currentStmt;
+		abs.sourceContext = null;
+		abs.isfinishing = true;
+		return abs;
+	}
+
+	public Abstraction deriveExitFinishingAbstraction(Stmt currentStmt) {
+		if (!this.isfinishing) {
+			return this;
+		}
+		Abstraction abs = clone();
+		abs.currentStmt = currentStmt;
+		abs.sourceContext = null;
+		abs.isfinishing = false;
 		return abs;
 	}
 
@@ -504,6 +529,9 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 //			return false;
 		if (this.isImplicit != other.isImplicit)
 			return false;
+		if (this.isfinishing != other.isfinishing) {
+			return false;
+		}
 		return true;
 	}
 
@@ -523,6 +551,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		result = prime * result + ((postdominators == null) ? 0 : postdominators.hashCode());
 //		result = prime * result + (dependsOnCutAP ? 1231 : 1237);
 		result = prime * result + (isImplicit ? 1231 : 1237);
+		result = prime * result + (isfinishing ? 1231 : 1237);
 		//再额外添加一个killStmts的
 		if (null != killStmts && !killStmts.isEmpty()) {
 			int killhash = 0;
@@ -706,6 +735,10 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	@Override
 	public int getPathLength() {
 		return propagationPathLength;
+	}
+
+	public boolean isIsfinishing() {
+		return this.isfinishing;
 	}
 
 }

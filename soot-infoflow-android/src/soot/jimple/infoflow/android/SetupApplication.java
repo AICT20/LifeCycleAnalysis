@@ -86,6 +86,7 @@ import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.memory.FlowDroidMemoryWatcher;
 import soot.jimple.infoflow.memory.FlowDroidTimeoutWatcher;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
+import soot.jimple.infoflow.pattern.PatternDataHelper;
 import soot.jimple.infoflow.results.InfoflowPerformanceData;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.rifl.RIFLSourceSinkDefinitionProvider;
@@ -473,7 +474,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 					calculateCallbackMethodsFast(lfp, entryPoint);
 					break;
 				case Default:
-					calculateCallbackMethods(lfp, entryPoint);
+					calculateCallbackMethods(lfp, entryPoint);//这里才是构建dummymain的函数
 					break;
 				default:
 					throw new RuntimeException("Unknown callback analyzer");
@@ -610,7 +611,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		PackManager.v().getPack("wjtp").remove("wjtp.ajc");//ajc似乎就是读取callback的操作
 
 		// Get the classes for which to find callbacks
-		Set<SootClass> entryPointClasses = getComponentsToAnalyze(component);//这里返回的就是全部的entrypoints
+		Set<SootClass> entryPointClasses = getComponentsToAnalyze(component);
+
 
 		// Collect the callback interfaces implemented in the app's
 		// source code. Note that the filters should know all components to
@@ -646,6 +648,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			}
 		}
 
+		//entrypoints在循环中不断更新
 		try {
 			int depthIdx = 0;
 			boolean hasChanged = true;
@@ -659,8 +662,9 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 						break;
 				}
 
+
 				// Create the new iteration of the main method
-				createMainMethod(component);
+				SootMethod mainmethod = createMainMethod(component);
 
 				// Since the gerenation of the main method can take some time,
 				// we check again whether we need to stop.
@@ -732,6 +736,21 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 				if (config.getSootIntegrationMode() == SootIntegrationMode.UseExistingCallgraph)
 					break;
 			}
+
+
+			//------------------------等全部构建完之后，我们进行初步的分析，然后根据分析结果再构建ICFG-----------------------------------
+			//只能在循环中不断更新Pattern，因为callgraph的构建和jimple的构建是一起的
+			//lifecycle-add 这里可以考虑先更新一波Pattern中的嫌疑Component
+			PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
+			SootMethod mainmethod = createMainMethod(component);
+			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
+			releaseCallgraph();
+			PackManager.v().getPack("wjtp").remove("wjtp.lfp");
+			constructCallgraphInternal();
+			PackManager.v().getPack("wjtp").apply();
+			//其他的应该不会变了
+			System.out.println("Pattern adaptation complete!");
+
 		} catch (Exception ex) {
 			logger.error("Could not calculate callback methods", ex);
 			throw ex;
@@ -742,6 +761,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			if (memoryWatcher != null)
 				memoryWatcher.close();
 		}
+
+
 
 		// Filter out callbacks that belong to fragments that are not used by
 		// the host activity
@@ -995,11 +1016,11 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @param The class name of a component to create a main method containing only
 	 *            that component, or null to create main method for all components
 	 */
-	private void createMainMethod(SootClass component) {
+	private SootMethod createMainMethod(SootClass component) {
 		// There is no need to create a main method if we don't want to generate
 		// a callgraph
 		if (config.getSootIntegrationMode() == SootIntegrationMode.UseExistingCallgraph)
-			return;
+			return null;
 
 		// Always update the entry point creator to reflect the newest set
 		// of callback methods
@@ -1012,6 +1033,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// addClass() declares the given class as a library class. We need to
 		// fix this.
 		dummyMainMethod.getDeclaringClass().setApplicationClass();
+		return dummyMainMethod;
 	}
 
 	/**
@@ -1289,6 +1311,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			throw new RuntimeException("No source/sink file specified for the data flow analysis");
 		String fileExtension = sourceSinkFile.substring(sourceSinkFile.lastIndexOf("."));
 		fileExtension = fileExtension.toLowerCase();
+		//lifecycle-add
+		PatternDataHelper.v().init(new String[]{"1"});
 
 		ISourceSinkDefinitionProvider parser = null;
 		try {
@@ -1392,7 +1416,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			if (config.getOneComponentAtATime())
 				calculateCallbacks(sourcesAndSinks, entrypoint);
 			else
-				calculateCallbacks(sourcesAndSinks);
+				calculateCallbacks(sourcesAndSinks); //这里才是进行dummarymethod的构建
 		} catch (IOException | XmlPullParserException e) {
 			logger.error("Callgraph construction failed: " + e.getMessage(), e);
 			throw new RuntimeException("Callgraph construction failed", e);
@@ -1424,7 +1448,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// Create and run the data flow tracker
 		infoflow = createInfoflow();
 		infoflow.addResultsAvailableHandler(resultAggregator);
-		infoflow.runAnalysis(sourceSinkManager, entryPointCreator.getGeneratedMainMethod());
+		infoflow.runAnalysis(sourceSinkManager, entryPointCreator.getGeneratedMainMethod()); //这里才是入口
 
 		// Update the statistics
 		if (config.getLogSourcesAndSinks() && infoflow.getCollectedSources() != null)

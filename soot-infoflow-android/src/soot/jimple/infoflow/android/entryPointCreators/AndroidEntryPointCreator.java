@@ -209,7 +209,6 @@ public class AndroidEntryPointCreator extends AbstractAndroidEntryPointCreator i
 		NopStmt outerStartStmt = Jimple.v().newNopStmt();
 		body.getUnits().add(outerStartStmt);
 
-		int LCcount = 1;
 		for (SootClass currentClass : components) {
 			currentClass.setApplicationClass();
 
@@ -261,11 +260,9 @@ public class AndroidEntryPointCreator extends AbstractAndroidEntryPointCreator i
 
 				// dummyMain(component, intent)
 				StaticInvokeExpr staticinvokeexp = Jimple.v().newStaticInvokeExpr(lifecycleMethod.makeRef(), Collections.singletonList(NullConstant.v()));
-				//lifecycle-add 这里将dummyMain()修改成 x = dummyMain() 的情况，和函数内部一致 -----很奇怪，每次改了都会变回来
 				LocalGenerator generator = new LocalGenerator(body);
 				Local returnlocal = generator.generateLocal(Scene.v().getTypeUnsafe("java.lang.Object"));
 				body.getUnits().add(Jimple.v().newAssignStmt(returnlocal, staticinvokeexp));
-				LCcount++;
 			}
 
 			// Jump back to the front of the component

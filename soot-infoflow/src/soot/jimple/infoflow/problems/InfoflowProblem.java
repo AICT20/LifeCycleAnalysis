@@ -49,6 +49,9 @@ import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.AccessPath.ArrayTaintType;
 import soot.jimple.infoflow.handlers.TaintPropagationHandler.FlowFunctionType;
+import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
+import soot.jimple.infoflow.pattern.patterntag.LCExitFinishTag;
 import soot.jimple.infoflow.problems.rules.IPropagationRuleManagerFactory;
 import soot.jimple.infoflow.problems.rules.PropagationRuleManager;
 import soot.jimple.infoflow.solver.functions.SolverCallFlowFunction;
@@ -547,12 +550,17 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 										|| isCallSiteActivatingTaint(callSite, source.getActivationUnit()))
 									newSource = source.getActiveCopy();
 
+
 						// if abstraction is not active and activeStmt was in
 						// this method, it will not get activated = it can be
 						// removed:
 						if (!newSource.isAbstractionActive() && newSource.getActivationUnit() != null)
 							if (interproceduralCFG().getMethodOf(newSource.getActivationUnit()) == callee)
 								return null;
+						//lifecycle-add 针对Pattern1的修正
+						if (exitStmt.hasTag(LCExitFinishTag.TAG_NAME) && PatternDataHelper.v().hasPattern1()) {
+							newSource = newSource.deriveExitFinishingAbstraction((Stmt)exitStmt);
+						}
 
 						ByReferenceBoolean killAll = new ByReferenceBoolean();
 						Set<Abstraction> res = propagationRules.applyReturnFlowFunction(callerD1s, newSource,
@@ -778,12 +786,16 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 									FlowFunctionType.CallToReturnFlowFunction);
 
 						// check inactive elements:
-						final Abstraction newSource;
+						Abstraction newSource;
 						if (!source.isAbstractionActive() && (call == source.getActivationUnit()
 								|| isCallSiteActivatingTaint(call, source.getActivationUnit())))
 							newSource = source.getActiveCopy();
 						else
 							newSource = source;
+						//lifecycle-add 针对Pattern1的处理
+						if (callee.getSignature().equals(PatternDataConstant.FINISHMETHODSIG) && PatternDataHelper.v().hasPattern1()) {
+							newSource = newSource.deriveNewFinishingAbstraction(iCallStmt);
+						}
 
 						ByReferenceBoolean killSource = new ByReferenceBoolean();
 						ByReferenceBoolean killAll = new ByReferenceBoolean();
