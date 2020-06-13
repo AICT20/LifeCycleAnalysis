@@ -11,10 +11,13 @@ import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AbstractionAtSink;
 import soot.jimple.infoflow.data.SourceContext;
 import soot.jimple.infoflow.data.SourceContextAndPath;
+import soot.jimple.infoflow.problems.TaintPropagationResults;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.results.ResultSinkInfo;
 import soot.jimple.infoflow.results.ResultSourceInfo;
 import soot.jimple.infoflow.solver.executors.InterruptableExecutor;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
+import soot.jimple.infoflow.util.MyOwnUtils;
 
 /**
  * Class for reconstructing abstraction paths from sinks to source. This builder
@@ -54,18 +57,31 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 		public void run() {
 			final Set<SourceContextAndPath> paths = pathCache.get(abstraction);
 			final Abstraction pred = abstraction.getPredecessor();
-
-			if (pred != null && paths != null) {
+			if (null == pred) {
+				return;
+			}
+			if (!checkKillingStmts(pred)) {
+				return;//说明本身这个pred的killstmts就有问题
+			}
+			if (pred.getCurrentStmt().toString().equals("return $r0")) {
+				System.out.println();
+			}
+			if (paths != null) {
 				for (SourceContextAndPath scap : paths) {
 					// Process the predecessor
 					if (processPredecessor(scap, pred)) {
 						// Schedule the predecessor
 						scheduleDependentTask(new SourceFindingTask(pred));
+					} else {
+						System.out.println();
 					}
 
 					// Process the predecessor's neighbors
 					if (pred.getNeighbors() != null) {
 						for (Abstraction neighbor : pred.getNeighbors()) {
+							if (!checkKillingStmts(neighbor)) {
+								continue;
+							}
 							if (processPredecessor(scap, neighbor)) {
 								// Schedule the predecessor
 								scheduleDependentTask(new SourceFindingTask(neighbor));
@@ -74,6 +90,23 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 					}
 				}
 			}
+		}
+
+		private boolean checkKillingStmts(Abstraction pred) {
+			if (null == pred.getKillStmts()) {
+				return true;
+			}
+			SourceSinkDefinition def = MyOwnUtils.getOriginalSource(pred);//这个反正都是一样的
+			Set<Stmt> currentAllKillStmts = TaintPropagationResults.getAllkillStmts().get(def);
+			if (null == currentAllKillStmts) {
+				return true;
+			}
+			for (Stmt s: pred.getKillStmts()) {
+				if (currentAllKillStmts.contains(s)) {
+					return false;
+				}
+			}
+			return true;
 		}
 
 		private boolean processPredecessor(SourceContextAndPath scap, Abstraction pred) {

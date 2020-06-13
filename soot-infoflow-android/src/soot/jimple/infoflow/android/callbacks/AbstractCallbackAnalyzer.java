@@ -87,6 +87,11 @@ public abstract class AbstractCallbackAnalyzer {
 			.getSootClassUnsafe("android.support.v4.app.FragmentTransaction");
 	protected final SootClass scSupportFragment = Scene.v().getSootClassUnsafe("android.support.v4.app.Fragment");
 
+	//lifecycle-add 新增的fragment接口
+	protected final SootClass scNewFragmentTransaction = Scene.v().getSootClassUnsafe("androidx.fragment.app.FragmentTransaction");
+	protected final SootClass scNewFragment = Scene.v().getSootClassUnsafe(AndroidEntryPointConstants.NEWFRAGMENTCLASS);
+
+
 	protected final InfoflowAndroidConfiguration config;
 	protected final Set<SootClass> entryPointClasses;
 	protected final Set<String> androidCallbacks;
@@ -95,6 +100,9 @@ public abstract class AbstractCallbackAnalyzer {
 	protected final MultiMap<SootClass, Integer> layoutClasses = new HashMultiMap<>();
 	protected final Set<SootClass> dynamicManifestComponents = new HashSet<>();
 	protected final MultiMap<SootClass, SootClass> fragmentClasses = new HashMultiMap<>();
+	//lifecycle-add
+	protected final MultiMap<SootClass, SootClass> newfragmentClasses = new HashMultiMap<>();
+
 	protected final Map<SootClass, Integer> fragmentIDs = new HashMap<>();
 
 	protected final List<ICallbackFilter> callbackFilters = new ArrayList<>();
@@ -396,10 +404,12 @@ public abstract class AbstractCallbackAnalyzer {
 	 * @param method
 	 *            The method to check
 	 */
+	//TODO 这里是关键
 	protected void analyzeMethodForFragmentTransaction(SootClass lifecycleElement, SootMethod method) {
 		if (scFragment == null || scFragmentTransaction == null)
 			if (scSupportFragment == null || scSupportFragmentTransaction == null)
-				return;
+				if (scNewFragment == null || scNewFragmentTransaction == null)
+					return;
 		if (!method.isConcrete() || !method.hasActiveBody())
 			return;
 
@@ -427,6 +437,8 @@ public abstract class AbstractCallbackAnalyzer {
 			}
 		}
 
+		//这里将旧版的Fragment和新版的Fragment区分开，因为它们的生命周期不同
+		boolean isNewFragmentTransaction = false;
 		// now get the fragment class from the second argument of the add method
 		// from the transaction
 		if (isFragmentManager && isFragmentTransaction && isAddTransaction)
@@ -443,6 +455,8 @@ public abstract class AbstractCallbackAnalyzer {
 								.canStoreType(iinvExpr.getBase().getType(), scFragmentTransaction.getType());
 						isFragmentTransaction |= scSupportFragmentTransaction != null && Scene.v().getFastHierarchy()
 								.canStoreType(iinvExpr.getBase().getType(), scSupportFragmentTransaction.getType());
+						isNewFragmentTransaction = scNewFragmentTransaction != null && Scene.v().getFastHierarchy()
+								.canStoreType(iinvExpr.getBase().getType(), scNewFragmentTransaction.getType());
 						isAddTransaction = stmt.getInvokeExpr().getMethod().getName().equals("add")
 								|| stmt.getInvokeExpr().getMethod().getName().equals("replace");
 
@@ -461,6 +475,21 @@ public abstract class AbstractCallbackAnalyzer {
 											.canStoreType(rt, scSupportFragment.getType());
 									if (addFragment)
 										fragmentClasses.put(method.getDeclaringClass(), rt.getSootClass());
+								}
+							}
+						} else if (isNewFragmentTransaction && isAddTransaction) {
+							//这段是复制的上面的，用于新版Fragment的使用
+							for (int i = 0; i < stmt.getInvokeExpr().getArgCount(); i++) {
+								Value br = stmt.getInvokeExpr().getArg(i);
+
+								// Is this a fragment?
+								if (br.getType() instanceof RefType) {
+									RefType rt = (RefType) br.getType();
+
+									boolean addFragment = scNewFragment != null
+											&& Scene.v().getFastHierarchy().canStoreType(rt, scNewFragment.getType());
+									if (addFragment)
+										newfragmentClasses.put(method.getDeclaringClass(), rt.getSootClass());
 								}
 							}
 						}
@@ -723,6 +752,10 @@ public abstract class AbstractCallbackAnalyzer {
 
 	public MultiMap<SootClass, SootClass> getFragmentClasses() {
 		return this.fragmentClasses;
+	}
+
+	public MultiMap<SootClass, SootClass> getNewFragmentClasses() {
+		return this.newfragmentClasses;
 	}
 
 	public Set<SootClass> getDynamicManifestComponents() {

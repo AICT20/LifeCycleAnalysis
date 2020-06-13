@@ -534,7 +534,7 @@ public class Infoflow extends AbstractInfoflow {
 
 					// We need to prune access paths that are entailed by
 					// another one
-					removeEntailedAbstractions(res);
+//					removeEntailedAbstractions(res);  TODO 我们先关了试试，因为它删掉了我们最简短有效的路径
 
 					// Shut down the native call handler
 					if (nativeCallHandler != null)
@@ -588,7 +588,6 @@ public class Infoflow extends AbstractInfoflow {
 						manager.cleanup();
 					manager = null;
 
-					TaintPropagationResults.clearLCResults();
 
 					// Report the remaining memory consumption
 					Runtime.getRuntime().gc();
@@ -619,7 +618,7 @@ public class Infoflow extends AbstractInfoflow {
 						}
 					} else {
 						memoryWatcher.addSolver(builder);
-						builder.computeTaintPaths(res);
+						builder.computeTaintPaths(res);//这才是build path的真正入口
 						res = null;
 
 						// Update the statistics
@@ -673,6 +672,8 @@ public class Infoflow extends AbstractInfoflow {
 
 					// Do we have any more sources?
 					hasMoreSources = oneSourceAtATime != null && oneSourceAtATime.hasNextSource();
+
+					TaintPropagationResults.clearLCResults();
 
 					// Shut down the memory watcher
 					memoryWatcher.close();

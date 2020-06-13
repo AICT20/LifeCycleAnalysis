@@ -114,12 +114,6 @@ public class PatternDataHelper implements PatternInterface {
         return returnMethods;
     }
 
-    @Override
-    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
-//        for (PatternData pattern : currentPatterns.values()) {
-//            pattern.updateDummyMainMethod(dummyMainMethod);
-//        }
-    }
 
     @Override
     public void clear() {
@@ -135,7 +129,7 @@ public class PatternDataHelper implements PatternInterface {
     boolean hasPattern3 = false;
 
 
-    public void init(String[] args){
+    public void init(String[] args, int targetSdk, int minSdk){
         if (null != args && args.length != 0) {
             tags = args;
             for (String arg : args) {
@@ -143,7 +137,7 @@ public class PatternDataHelper implements PatternInterface {
                     currentPatterns.put(1, new Pattern1Data());
                     hasPattern1 = true;
                 } else if (arg.equals("2")){
-                    currentPatterns.put(2, new Pattern2Data());
+                    currentPatterns.put(2, new Pattern2Data(targetSdk, minSdk));
                     hasPattern2 = true;
                 } else if (arg.equals("3")) {
                     currentPatterns.put(3, new Pattern3Data());

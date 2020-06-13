@@ -713,8 +713,8 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						// (1)如果taint与返回值或者函数参数有关，能正常返回，则不变；
 						// (2)如果正常情况下不返回，则添加一条原本的进行返回；
 						if (res.isEmpty() && Aliasing.canHaveAliases(newSource.getAccessPath())) {
-							newSource = newSource.deriveNewAbstractionOnCallAndReturn((Stmt)exitStmt);
-							res.add(newSource);
+							Abstraction newnewSource = newSource.deriveNewAbstractionOnCallAndReturn((Stmt)exitStmt);
+							res.add(newnewSource);
 						}
 
 						for (Abstraction abs : res) {
@@ -795,6 +795,7 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						//lifecycle-add 针对Pattern1的处理
 						if (callee.getSignature().equals(PatternDataConstant.FINISHMETHODSIG) && PatternDataHelper.v().hasPattern1()) {
 							newSource = newSource.deriveNewFinishingAbstraction(iCallStmt);
+							newSource.setCorrespondingCallSite(iCallStmt);
 						}
 
 						ByReferenceBoolean killSource = new ByReferenceBoolean();

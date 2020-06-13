@@ -36,22 +36,22 @@ public class Pattern1Data extends PatternData {
 
     }
 
-    @Override
-    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
-        Body b = dummyMainMethod.getActiveBody();
-        for (Unit u : b.getUnits()) {
-            if (u instanceof Stmt && ((Stmt) u).containsInvokeExpr()) {
-                InvokeExpr exp = ((Stmt) u).getInvokeExpr();
-                SootMethod currentMainM = exp.getMethod();
-                String content = involvedEntrypoints.get(currentMainM.getDeclaringClass());
-                if (null == content) {
-                    continue;
-                }
-
-                if (content.equals(PatternDataConstant.ONCREATESUBSIG)) {
-
-                }
-            }
-        }
-    }
+//    @Override
+//    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
+//        Body b = dummyMainMethod.getActiveBody();
+//        for (Unit u : b.getUnits()) {
+//            if (u instanceof Stmt && ((Stmt) u).containsInvokeExpr()) {
+//                InvokeExpr exp = ((Stmt) u).getInvokeExpr();
+//                SootMethod currentMainM = exp.getMethod();
+//                String content = involvedEntrypoints.get(currentMainM.getDeclaringClass());
+//                if (null == content) {
+//                    continue;
+//                }
+//
+//                if (content.equals(PatternDataConstant.ONCREATESUBSIG)) {
+//
+//                }
+//            }
+//        }
+//    }
 }

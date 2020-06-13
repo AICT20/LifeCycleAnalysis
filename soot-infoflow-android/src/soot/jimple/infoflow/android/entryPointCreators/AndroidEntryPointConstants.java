@@ -10,8 +10,13 @@
  ******************************************************************************/
 package soot.jimple.infoflow.android.entryPointCreators;
 
+import soot.Scene;
+import soot.SootClass;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class containing constants for the well-known Android lifecycle methods
@@ -35,6 +40,11 @@ public class AndroidEntryPointConstants {
 
 	public static final String APPCOMPATACTIVITYCLASS_V4 = "android.support.v4.app.AppCompatActivity";
 	public static final String APPCOMPATACTIVITYCLASS_V7 = "android.support.v7.app.AppCompatActivity";
+
+	//lifecycle-add 需要加入新版本的Fragment
+	public static final String NEWFRAGMENTCLASS = "androidx.fragment.app.Fragment";
+	public static final String NEWAPPCOMPATACTIVITYCLASS = "androidx.fragment.app.FragmentActivity";
+
 
 	public static final String ACTIVITY_ONCREATE = "void onCreate(android.os.Bundle)";
 	public static final String ACTIVITY_ONSTART = "void onStart()";
@@ -230,7 +240,7 @@ public class AndroidEntryPointConstants {
 		return className.equals(ACTIVITYCLASS) || className.equals(SERVICECLASS) || className.equals(FRAGMENTCLASS)
 				|| className.equals(BROADCASTRECEIVERCLASS) || className.equals(CONTENTPROVIDERCLASS)
 				|| className.equals(APPLICATIONCLASS) || className.equals(APPCOMPATACTIVITYCLASS_V4)
-				|| className.equals(APPCOMPATACTIVITYCLASS_V7);
+				|| className.equals(APPCOMPATACTIVITYCLASS_V7) || className.equals(NEWAPPCOMPATACTIVITYCLASS);
 	}
 
 	/**
@@ -238,6 +248,50 @@ public class AndroidEntryPointConstants {
 	 */
 	private AndroidEntryPointConstants() {
 
+	}
+
+
+	//lifecycle-add
+	private static boolean init = false;
+	private static Map<SootClass, FRAGMENTTYPE> cache = null;
+	private static SootClass v4Fragment = null;
+	private static SootClass androidFragment = null;
+	private static SootClass androidxFragment = null;
+	public static FRAGMENTTYPE getFrgamentType(SootClass fragmentClass){
+		if (!init) {
+			cache = new ConcurrentHashMap<>();
+			v4Fragment = Scene.v().getSootClassUnsafe(SUPPORTFRAGMENTCLASS);
+			androidFragment = Scene.v().getSootClassUnsafe(FRAGMENTCLASS);
+			androidxFragment = Scene.v().getSootClassUnsafe(NEWFRAGMENTCLASS);
+			init = true;
+		}
+		if (null == v4Fragment || androidFragment == null || fragmentClass == androidxFragment) {
+			return FRAGMENTTYPE.ANDROIDX;
+		}
+		if (null == v4Fragment || androidxFragment == null || fragmentClass == androidFragment) {
+			return FRAGMENTTYPE.ANDROID;
+		}
+		if (null == androidxFragment || androidFragment == null || fragmentClass == v4Fragment) {
+			return FRAGMENTTYPE.V4;
+		}
+		if (cache.containsKey(fragmentClass)) {
+			return cache.get(fragmentClass);
+		}
+		SootClass currentClass = fragmentClass;
+		while (currentClass.hasSuperclass()) {
+			currentClass = currentClass.getSuperclassUnsafe();
+			if (currentClass == v4Fragment) {
+				cache.put(fragmentClass, FRAGMENTTYPE.V4);
+				return FRAGMENTTYPE.V4;
+			} else if (currentClass == androidFragment) {
+				cache.put(fragmentClass, FRAGMENTTYPE.ANDROID);
+				return FRAGMENTTYPE.ANDROID;
+			} else if (currentClass == androidxFragment) {
+				cache.put(fragmentClass, FRAGMENTTYPE.ANDROIDX);
+				return FRAGMENTTYPE.ANDROIDX;
+			}
+		}
+		return FRAGMENTTYPE.UNKNOWN;
 	}
 
 }

@@ -163,16 +163,26 @@ public class TaintPropagationResults {
 				continue;
 			}
 
+//			if (abs.getKillStmts() == null) {
+//				//TODO 这里改一下，进行测试
+//				newresults.put(absink, abs);
+//				break;
+//			} else {
+//				continue;
+//			}
+
 			newresults.put(absink, abs);
 		}
 		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
 			Abstraction abs = entry.getValue();
 			LinkedList<SootMethod> preMethods = new LinkedList();
 			LinkedList<Stmt> preStmts = new LinkedList();
+			LinkedList<Abstraction> absSets = new LinkedList<>();
 			Abstraction currentAbs = abs;
 			while (null != currentAbs) {
 				preStmts.add(currentAbs.getCurrentStmt());
 				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
+				absSets.add(currentAbs);
 				currentAbs = currentAbs.getPredecessor();
 			}
 
@@ -195,6 +205,9 @@ public class TaintPropagationResults {
 		allreturnStmts.clear();
 	}
 	protected static Map<SourceSinkDefinition, Set<Stmt>> allkillStmts = null;//保存所有的kill操作的位置
+	public static Map<SourceSinkDefinition, Set<Stmt>> getAllkillStmts() {
+		return allkillStmts;
+	}
 	public static boolean addKillStmts(SourceSinkDefinition def, Stmt stmt) {
 		Set<Stmt> killstmts = allkillStmts.get(def);
 		if (null == killstmts) {

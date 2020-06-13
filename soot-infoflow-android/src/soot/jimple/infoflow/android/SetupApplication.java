@@ -58,7 +58,9 @@ import soot.jimple.infoflow.android.config.SootConfigForAndroid;
 import soot.jimple.infoflow.android.data.AndroidMemoryManager;
 import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.data.parsers.PermissionMethodParser;
+import soot.jimple.infoflow.android.entryPointCreators.AndroidEntryPointConstants;
 import soot.jimple.infoflow.android.entryPointCreators.AndroidEntryPointCreator;
+import soot.jimple.infoflow.android.entryPointCreators.FRAGMENTTYPE;
 import soot.jimple.infoflow.android.entryPointCreators.components.ComponentEntryPointCollection;
 import soot.jimple.infoflow.android.iccta.IccInstrumenter;
 import soot.jimple.infoflow.android.iccta.IccResults;
@@ -112,6 +114,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	protected ISourceSinkDefinitionProvider sourceSinkProvider;
 	protected MultiMap<SootClass, CallbackDefinition> callbackMethods = new HashMultiMap<>();
 	protected MultiMap<SootClass, SootClass> fragmentClasses = new HashMultiMap<>();
+
 
 	protected InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
 
@@ -742,8 +745,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			//只能在循环中不断更新Pattern，因为callgraph的构建和jimple的构建是一起的
 			//lifecycle-add 这里可以考虑先更新一波Pattern中的嫌疑Component
 			PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
-			SootMethod mainmethod = createMainMethod(component);
-			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
+			createMainMethod(component);
+//			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
 			releaseCallgraph();
 			PackManager.v().getPack("wjtp").remove("wjtp.lfp");
 			constructCallgraphInternal();
@@ -843,6 +846,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @return True if at least one new callback method has been added, otherwise
 	 *         false
 	 */
+	//TODO 这边也很重要？？？
 	private boolean collectXmlBasedCallbackMethods(LayoutFileParser lfp, AbstractCallbackAnalyzer jimpleClass) {
 		SootMethod smViewOnClick = Scene.v()
 				.grabMethod("<android.view.View$OnClickListener: void onClick(android.view.View)>");
@@ -891,8 +895,9 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 					Set<SootClass> fragments = lfp.getFragments().get(layoutFileName);
 					if (fragments != null)
 						for (SootClass fragment : fragments)
-							if (fragmentClasses.put(callbackClass, fragment))
+							if (fragmentClasses.put(callbackClass, fragment)) {
 								hasNewCallback = true;
+							}
 
 					// For user-defined views, we need to emulate their
 					// callbacks
@@ -914,6 +919,11 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 																		// in
 																		// code
 			hasNewCallback = true;
+
+		if (fragmentClasses.putAll(jimpleClass.getNewFragmentClasses()))
+			hasNewCallback = true;
+
+
 
 		return hasNewCallback;
 	}
@@ -1312,7 +1322,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		String fileExtension = sourceSinkFile.substring(sourceSinkFile.lastIndexOf("."));
 		fileExtension = fileExtension.toLowerCase();
 		//lifecycle-add
-		PatternDataHelper.v().init(new String[]{"1"});
+		PatternDataHelper.v().init(new String[]{"1"}, manifest.targetSdkVersion(), manifest.getMinSdkVersion());
 
 		ISourceSinkDefinitionProvider parser = null;
 		try {
@@ -1478,7 +1488,6 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// We don't need the computed callbacks anymore
 		this.callbackMethods.clear();
 		this.fragmentClasses.clear();
-
 		// Notify our result handlers
 		for (ResultsAvailableHandler handler : resultsAvailableHandlers)
 			handler.onResultsAvailable(resultAggregator.getLastICFG(), resultAggregator.getLastResults());

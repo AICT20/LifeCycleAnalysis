@@ -1,11 +1,6 @@
 package soot.jimple.infoflow.android.entryPointCreators.components;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import heros.TwoElementSet;
 import soot.Body;
@@ -26,9 +21,12 @@ import soot.jimple.NopStmt;
 import soot.jimple.NullConstant;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.android.entryPointCreators.AndroidEntryPointConstants;
+import soot.jimple.infoflow.android.entryPointCreators.FRAGMENTTYPE;
 import soot.jimple.infoflow.cfg.LibraryClassPatcher;
 import soot.jimple.infoflow.entryPointCreators.SimulatedCodeElementTag;
 import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
+import soot.jimple.infoflow.pattern.patterndata.Pattern2Data;
+import soot.jimple.infoflow.pattern.patterndata.PatternData;
 import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
 import soot.jimple.infoflow.pattern.PatternDataHelper;
 import soot.jimple.infoflow.pattern.patterntag.LCFinishBranchTag;
@@ -72,6 +70,22 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			for (SootClass callbackClass : this.fragmentClasses)
 				referenceClasses.add(callbackClass);
 		referenceClasses.add(component);
+
+		//根据Pattern3来进行旧版Fragment和新版Fragmnent的区分
+		Set<SootClass> newFragmentClasses = new HashSet<>();
+		Set<SootClass> oldFragmentClasses = new HashSet<>();
+		if (PatternDataHelper.v().hasPattern3()) {
+			for (SootClass fragment : this.fragmentClasses) {
+				FRAGMENTTYPE type = AndroidEntryPointConstants.getFrgamentType(fragment);
+				if (type == FRAGMENTTYPE.V4 || type == FRAGMENTTYPE.ANDROID) {
+					oldFragmentClasses.add(fragment);
+				} else if (type == FRAGMENTTYPE.ANDROIDX) {
+					newFragmentClasses.add(fragment);
+				}
+			}
+		} else {
+			oldFragmentClasses.addAll(this.fragmentClasses);
+		}
 
 		// Get the application class
 		Local applicationLocal = null;
@@ -131,8 +145,8 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 
 		// Adding the lifecycle of the Fragments that belong to this Activity:
 		// iterate through the fragments detected in the CallbackAnalyzer
-		if (fragmentClasses != null && !fragmentClasses.isEmpty()) {
-			for (SootClass scFragment : fragmentClasses) {
+		if (!oldFragmentClasses.isEmpty()) {
+			for (SootClass scFragment : oldFragmentClasses) {
 				// Get a class local
 				Local fragmentLocal = localVarsForClasses.get(scFragment);
 				Set<Local> tempLocals = new HashSet<>();
@@ -162,11 +176,46 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 					body.getUnits().add(Jimple.v().newAssignStmt(tempLocal, NullConstant.v()));
 			}
 		}
+		// pattern3的Fragment对应Fragment初始化和onCreate
+		Set<Local> alltemplocals = new HashSet<>();
+		if (!newFragmentClasses.isEmpty()) {
+			for (SootClass scFragment : newFragmentClasses) {
+				// Get a class local
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				Set<Local> tempLocals = new HashSet<>();
+				if (fragmentLocal == null) {
+					fragmentLocal = generateClassConstructor(scFragment, body, new HashSet<SootClass>(),
+							referenceClasses, tempLocals);
+					if (fragmentLocal == null)
+						continue;
+					localVarsForClasses.put(scFragment, fragmentLocal);
+				}
+
+				// The onAttachFragment() callbacks tells the activity that a
+				// new fragment was attached
+				TwoElementSet<SootClass> classAndFragment = new TwoElementSet<SootClass>(component, scFragment);
+				Stmt afterOnAttachFragment = Jimple.v().newNopStmt();
+				createIfStmt(afterOnAttachFragment);
+				searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONATTACHFRAGMENT, component, thisLocal,
+						classAndFragment);
+				body.getUnits().add(afterOnAttachFragment);
+
+				// 只进行OnCreate
+				generateFragmentOnCreate(scFragment, fragmentLocal, component);
+				alltemplocals.addAll(tempLocals);
+			}
+		}
 
 		// 2. onStart:
 		Stmt onStartStmt;
 		{
 			onStartStmt = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTART, component, thisLocal);
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				Stmt s = generateFragmentOnStart(scFragment, fragmentLocal, component);
+				if (onStartStmt == null)
+					onStartStmt = s;
+			}
 			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
 				Stmt s = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSTARTED,
 						callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
@@ -205,6 +254,10 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		Stmt onResumeStmt = Jimple.v().newNopStmt();
 		body.getUnits().add(onResumeStmt);
 		{
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				generateFragmentOnResume(scFragment, fragmentLocal, component);
+			}
 			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONRESUME, component, thisLocal);
 			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
 				searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYRESUMED,
@@ -229,37 +282,99 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 
 		// 4. onPause:
 		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONPAUSE, component, thisLocal);
+		for (SootClass scFragment : newFragmentClasses) {
+			Local fragmentLocal = localVarsForClasses.get(scFragment);
+			generateFragmentOnResume(scFragment, fragmentLocal, component);
+		}
 		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
 			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYPAUSED, callbackClass,
 					localVarsForClasses.get(callbackClass), currentClassSet);
 		}
 		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONCREATEDESCRIPTION, component, thisLocal);
-		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
-		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
-			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSAVEINSTANCESTATE,
-					callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
+
+		//lifecycle-add pattern2的处理
+		Pattern2Data pattern2 = PatternDataHelper.v().getPattern2();
+		boolean shouldapplypattern2 = false;
+		if (null != pattern2) {
+			shouldapplypattern2 = pattern2.shouldCheck();
+		}
+		if (shouldapplypattern2) {
+			//这是API28以上的正常流程
+			// goTo Stop, Resume or Create:
+			// (to stop is fall-through, no need to add)
+			createIfStmt(onResumeStmt);
+			// 5. onStop:
+			//lifecycle-add
+			if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
+				body.getUnits().add(pattern2toOnStopStmt);
+			}
+			Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
+			boolean hasAppOnStop = false;
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				Stmt s = generateFragmentOnStop(scFragment, fragmentLocal, component);
+				if (onStop == null) {
+					onStop = s;
+				}
+			}
+			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
+				Stmt onActStoppedStmt = searchAndBuildMethod(
+						AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSTOPPED, callbackClass,
+						localVarsForClasses.get(callbackClass), currentClassSet);
+				hasAppOnStop |= onActStoppedStmt != null;
+			}
+			if (hasAppOnStop && onStop != null)
+				createIfStmt(onStop);
+			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				generateFragmentOnSaveInstanceState(scFragment, fragmentLocal, component);
+			}
+			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
+				searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSAVEINSTANCESTATE,
+						callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
+			}
+
+		} else {
+			//这是API28以下的正常流程
+			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				generateFragmentOnSaveInstanceState(scFragment, fragmentLocal, component);
+			}
+			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
+				searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSAVEINSTANCESTATE,
+						callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
+			}
+			// goTo Stop, Resume or Create:
+			// (to stop is fall-through, no need to add)
+			createIfStmt(onResumeStmt);
+			// createIfStmt(onCreateStmt); // no, the process gets killed in between
+			// 5. onStop:
+			//lifecycle-add
+			if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
+				body.getUnits().add(pattern2toOnStopStmt);
+			}
+			Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
+			for (SootClass scFragment : newFragmentClasses) {
+				Local fragmentLocal = localVarsForClasses.get(scFragment);
+				Stmt s = generateFragmentOnStop(scFragment, fragmentLocal, component);
+				if (onStop == null) {
+					onStop = s;
+				}
+			}
+			boolean hasAppOnStop = false;
+			for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
+				Stmt onActStoppedStmt = searchAndBuildMethod(
+						AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSTOPPED, callbackClass,
+						localVarsForClasses.get(callbackClass), currentClassSet);
+				hasAppOnStop |= onActStoppedStmt != null;
+			}
+			if (hasAppOnStop && onStop != null)
+				createIfStmt(onStop);
 		}
 
-		// goTo Stop, Resume or Create:
-		// (to stop is fall-through, no need to add)
-		createIfStmt(onResumeStmt);
-		// createIfStmt(onCreateStmt); // no, the process gets killed in between
 
-		// 5. onStop:
-		//lifecycle-add
-		if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
-			body.getUnits().add(pattern2toOnStopStmt);
-		}
-		Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
-		boolean hasAppOnStop = false;
-		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
-			Stmt onActStoppedStmt = searchAndBuildMethod(
-					AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSTOPPED, callbackClass,
-					localVarsForClasses.get(callbackClass), currentClassSet);
-			hasAppOnStop |= onActStoppedStmt != null;
-		}
-		if (hasAppOnStop && onStop != null)
-			createIfStmt(onStop);
 
 		// goTo onDestroy, onRestart or onCreate:
 		// (to restart is fall-through, no need to add)
@@ -280,10 +395,22 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			body.getUnits().add(pattern1toOnDestroyStmt);
 		}
 		searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONDESTROY, component, thisLocal);
+		for (SootClass scFragment : newFragmentClasses) {
+			Local fragmentLocal = localVarsForClasses.get(scFragment);
+			generateFragmentOnDestroy(scFragment, fragmentLocal, component);
+		}
 		for (SootClass callbackClass : this.activityLifecycleCallbacks.keySet()) {
 			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYDESTROYED,
 					callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
 		}
+
+		for (SootClass scFragment : newFragmentClasses) {
+			// Get rid of the locals
+			Local fragmentLocal = localVarsForClasses.get(scFragment);
+			body.getUnits().add(Jimple.v().newAssignStmt(fragmentLocal, NullConstant.v()));
+		}
+		for (Local tempLocal : alltemplocals)
+			body.getUnits().add(Jimple.v().newAssignStmt(tempLocal, NullConstant.v()));
 	}
 
 
@@ -345,13 +472,23 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONPAUSE, currentClass, classLocal);
 		createIfStmt(onResumeStmt);
 
-		// 7. onSaveInstanceState:
-		searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
+		//Pattern2的适配
+		Pattern2Data pattern2 = PatternDataHelper.v().getPattern2();
+		if (null != pattern2 && !pattern2.shouldCheck()) {
+			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
+			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
+			createIfStmt(onCreateViewStmt);
+			createIfStmt(onStartStmt);
+		} else {
+			// 7. onSaveInstanceState:
+			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
 
-		// 8. onStop:
-		searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
-		createIfStmt(onCreateViewStmt);
-		createIfStmt(onStartStmt);
+			// 8. onStop:
+			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
+			createIfStmt(onCreateViewStmt);
+			createIfStmt(onStartStmt);
+		}
+
 
 		// 9. onDestroyView:
 		searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONDESTROYVIEW, currentClass, classLocal);
@@ -366,6 +503,79 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 
 		body.getUnits().add(Jimple.v().newAssignStmt(classLocal, NullConstant.v()));
 		body.getUnits().add(endFragmentStmt);
+	}
+
+
+	//Pattern3专用的，由于新版中Fragment的生命周期函数绑定了Activity的生命周期函数，因此，上面函数中的跳转都不用了，因为都已经在Activity的主函数中实现了
+	private Stmt generateFragmentOnCreate(SootClass currentClass, Local classLocal, SootClass activity) {
+		Stmt returnStmt = null;
+		// 1. onAttach:
+		Stmt onAttachStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONATTACH, currentClass, classLocal,
+				Collections.singleton(activity));
+		if (onAttachStmt != null)
+			returnStmt = onAttachStmt;
+
+		// 2. onCreate:
+		Stmt onCreateStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONCREATE, currentClass,
+				classLocal);
+		if (onCreateStmt != null)
+			returnStmt = onCreateStmt;
+
+		// 3. onCreateView:
+		Stmt onCreateViewStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONCREATEVIEW, currentClass,
+				classLocal);
+		if (onCreateViewStmt != null)
+			returnStmt = onCreateViewStmt;
+
+		Stmt onViewCreatedStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONVIEWCREATED, currentClass,
+				classLocal);
+		if (onViewCreatedStmt != null)
+			returnStmt = onViewCreatedStmt;
+
+		// 0. onActivityCreated:
+		Stmt onActCreatedStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONACTIVITYCREATED,
+				currentClass, classLocal);
+		if (onActCreatedStmt != null)
+			returnStmt = onActCreatedStmt;
+
+		return returnStmt;
+	}
+	private Stmt generateFragmentOnStart(SootClass currentClass, Local classLocal, SootClass activity) {
+		// 4. onStart:
+		Stmt onStartStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTART, currentClass, classLocal);
+		return onStartStmt;
+	}
+	private Stmt generateFragmentOnResume(SootClass currentClass, Local classLocal, SootClass activity) {
+		// 5. onResume:
+		return searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONRESUME, currentClass, classLocal);
+	}
+	private Stmt generateFragmentOnPause(SootClass currentClass, Local classLocal, SootClass activity) {
+		// 6. onPause:
+		return searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONPAUSE, currentClass, classLocal);
+	}
+	private Stmt generateFragmentOnStop(SootClass currentClass, Local classLocal, SootClass activity) {
+		// 7. onStop:
+		return searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
+	}
+	private Stmt generateFragmentOnSaveInstanceState(SootClass currentClass, Local classLocal, SootClass activity) {
+		// 8. onSaveInstanceState:
+		return searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
+	}
+	private Stmt generateFragmentOnDestroy(SootClass currentClass, Local classLocal, SootClass activity) {
+		Stmt returnStmt = null;
+		// 9. onDestroyView:
+		Stmt onDestroyViewStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONDESTROYVIEW, currentClass, classLocal);
+		if (null != onDestroyViewStmt)
+			returnStmt = onDestroyViewStmt;
+		// 10. onDestroy:
+		Stmt onDestroyStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONDESTROY, currentClass, classLocal);
+		if (null != onDestroyStmt)
+			returnStmt = onDestroyStmt;
+		// 11. onDetach:
+		Stmt onDetachStmt = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONDETACH, currentClass, classLocal);
+		if (null != onDetachStmt)
+			returnStmt = onDetachStmt;
+		return returnStmt;
 	}
 
 	@Override

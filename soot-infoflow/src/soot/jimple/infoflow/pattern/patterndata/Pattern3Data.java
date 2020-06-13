@@ -21,8 +21,4 @@ public class Pattern3Data extends PatternData {
 
     }
 
-    @Override
-    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
-
-    }
 }
