@@ -21,7 +21,7 @@ public interface IPathBuilderFactory {
 	 *            The maximum number of threads to use * @return The newly
 	 *            created path builder
 	 */
-	public IAbstractionPathBuilder createPathBuilder(InfoflowManager manager, int maxThreadNum);
+    IAbstractionPathBuilder createPathBuilder(InfoflowManager manager, int maxThreadNum);
 
 	/**
 	 * Creates a new path builder. Use this overload if you want the path
@@ -34,7 +34,7 @@ public interface IPathBuilderFactory {
 	 *            The executor in which to run the path reconstruction tasks.
 	 *            * @return The newly created path builder
 	 */
-	public IAbstractionPathBuilder createPathBuilder(InfoflowManager manager, InterruptableExecutor executor);
+    IAbstractionPathBuilder createPathBuilder(InfoflowManager manager, InterruptableExecutor executor);
 
 	/**
 	 * Gets whether the {@link IAbstractionPathBuilder} object created by this
@@ -46,7 +46,7 @@ public interface IPathBuilderFactory {
 	 *         sink, false if it only reports source-to-sink connections without
 	 *         paths.
 	 */
-	public boolean supportsPathReconstruction();
+    boolean supportsPathReconstruction();
 
 	/**
 	 * Gets whether the {@link IAbstractionPathBuilder} object created by this
@@ -56,6 +56,6 @@ public interface IPathBuilderFactory {
 	 *         this factory supports context-sensitive path reconstruction,
 	 *         otherwise false.
 	 */
-	public boolean isContextSensitive();
+    boolean isContextSensitive();
 
 }

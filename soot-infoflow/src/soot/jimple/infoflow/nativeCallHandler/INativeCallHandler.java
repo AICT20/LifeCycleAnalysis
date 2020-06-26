@@ -32,7 +32,7 @@ public interface INativeCallHandler {
 	 * @param manager The manager object providing access to the data flow solver processing
 	 * the IFDS edges and the interprocedural control flow graph
 	 */
-	public void initialize(InfoflowManager manager);
+    void initialize(InfoflowManager manager);
 	
 	/**
 	 * Returns the set of tainted values for a given call to native code, a
@@ -42,7 +42,7 @@ public interface INativeCallHandler {
 	 * @param params list of arguments
 	 * @return the resulting set of taints
 	 */
-	public abstract Set<Abstraction> getTaintedValues(Stmt call, Abstraction source, Value[] params);
+    Set<Abstraction> getTaintedValues(Stmt call, Abstraction source, Value[] params);
 
 	/**
 	 * Checks whether this handler is able to handle the given call, i.e., has
@@ -51,11 +51,11 @@ public interface INativeCallHandler {
 	 * @return True if this native call handler has an explicit model for the
 	 * given call site, otherwise false
 	 */
-	public abstract boolean supportsCall(Stmt call);
+    boolean supportsCall(Stmt call);
 
 	/**
 	 * Tells the native call handler that it can free all resources it has allocated at initialization time
 	 */
-	public void shutdown();
+    void shutdown();
 	
 }

@@ -325,7 +325,7 @@ public class Aliasing {
 		if (TypeUtils.isStringType(val.getType()) && !source.getAccessPath().getCanHaveImmutableAliases())
 			return false;
 
-		return val instanceof FieldRef || (val instanceof Local && ((Local) val).getType() instanceof ArrayType);
+		return val instanceof FieldRef || (val instanceof Local && val.getType() instanceof ArrayType);
 	}
 
 	/**
@@ -341,12 +341,9 @@ public class Aliasing {
 
 		// We never ever handle primitives as they can never have aliases
 		if (ap.isStaticFieldRef()) {
-			if (ap.getFirstFieldType() instanceof PrimType)
-				return false;
-		} else if (ap.getBaseType() instanceof PrimType)
-			return false;
+			return !(ap.getFirstFieldType() instanceof PrimType);
+		} else return !(ap.getBaseType() instanceof PrimType);
 
-		return true;
 	}
 
 	/**
@@ -360,17 +357,14 @@ public class Aliasing {
 	 */
 	public static boolean baseMatches(final Value baseValue, Abstraction source) {
 		if (baseValue instanceof Local) {
-			if (baseValue.equals(source.getAccessPath().getPlainValue()))
-				return true;
+			return baseValue.equals(source.getAccessPath().getPlainValue());
 		} else if (baseValue instanceof InstanceFieldRef) {
 			InstanceFieldRef ifr = (InstanceFieldRef) baseValue;
-			if (ifr.getBase().equals(source.getAccessPath().getPlainValue())
-					&& source.getAccessPath().firstFieldMatches(ifr.getField()))
-				return true;
+			return ifr.getBase().equals(source.getAccessPath().getPlainValue())
+					&& source.getAccessPath().firstFieldMatches(ifr.getField());
 		} else if (baseValue instanceof StaticFieldRef) {
 			StaticFieldRef sfr = (StaticFieldRef) baseValue;
-			if (source.getAccessPath().firstFieldMatches(sfr.getField()))
-				return true;
+			return source.getAccessPath().firstFieldMatches(sfr.getField());
 		}
 		return false;
 	}

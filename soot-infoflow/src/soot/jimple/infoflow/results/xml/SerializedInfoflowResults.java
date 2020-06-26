@@ -109,12 +109,9 @@ public class SerializedInfoflowResults {
 		} else if (!performanceData.equals(other.performanceData))
 			return false;
 		if (results == null) {
-			if (other.results != null)
-				return false;
-		} else if (!results.equals(other.results))
-			return false;
-		return true;
-	}
+            return other.results == null;
+		} else return results.equals(other.results);
+    }
 
 	/**
 	 * Gets whether this data object is empty, i.e., does not contain any data flows

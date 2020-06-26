@@ -58,12 +58,9 @@ class AbstractSerializedSourceSink {
 		} else if (!statement.equals(other.statement))
 			return false;
 		if (method == null) {
-			if (other.method != null)
-				return false;
-		} else if (!method.equals(other.method))
-			return false;
-		return true;
-	}
+            return other.method == null;
+		} else return method.equals(other.method);
+    }
 	
 	/**
 	 * Gets the tainted access path at the current source or sink

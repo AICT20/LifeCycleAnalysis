@@ -28,17 +28,17 @@ public interface IAliasingStrategy {
 	 * @param method The method containing src
 	 * @param newAbs The newly generated abstraction for the variable taint
 	 */
-	public void computeAliasTaints
-			(final Abstraction d1, final Stmt src,
-			final Value targetValue, Set<Abstraction> taintSet,
-			SootMethod method, Abstraction newAbs);
+    void computeAliasTaints
+    (final Abstraction d1, final Stmt src,
+     final Value targetValue, Set<Abstraction> taintSet,
+     SootMethod method, Abstraction newAbs);
 	
 	/**
 	 * Gets whether this aliasing strategy is interactive, i.e. computes aliases
 	 * on demand.
 	 * @return True if this is an on-demand aliasing strategy, otherwise false
 	 */
-	public boolean isInteractive();
+    boolean isInteractive();
 	
 	/**
 	 * Gets whether the two given access path may alias
@@ -47,7 +47,7 @@ public interface IAliasingStrategy {
 	 * @return True if the two access paths can potentially point ot the same
 	 * runtime object, otherwise false
 	 */
-	public boolean mayAlias(AccessPath ap1, AccessPath ap2);
+    boolean mayAlias(AccessPath ap1, AccessPath ap2);
 	
 	/**
 	 * Notifies the aliasing strategy that a method has been called in the
@@ -59,14 +59,14 @@ public interface IAliasingStrategy {
 	 * @param source The abstraction at the call site
 	 * @param d1 The abstraction at the caller method's entry point
 	 */
-	public void injectCallingContext(Abstraction abs, IInfoflowSolver fSolver,
-			SootMethod callee, Unit callSite, Abstraction source, Abstraction d1);
+    void injectCallingContext(Abstraction abs, IInfoflowSolver fSolver,
+                              SootMethod callee, Unit callSite, Abstraction source, Abstraction d1);
 	
 	/**
 	 * Gets whether this aliasing strategy is flow sensitive
 	 * @return True if the aliasing strategy is flow sensitive, otherwise false
 	 */
-	public boolean isFlowSensitive();
+    boolean isFlowSensitive();
 	
 	/**
 	 * Gets whether this algorithm requires the analysis to be triggered again
@@ -74,7 +74,7 @@ public interface IAliasingStrategy {
 	 * @return True if the alias analysis must be triggered again when returning
 	 * from a method, otherwise false
 	 */
-	public boolean requiresAnalysisOnReturn();
+    boolean requiresAnalysisOnReturn();
 	
 	/**
 	 * Checks whether this aliasing strategy has already computed aliases in the
@@ -84,7 +84,7 @@ public interface IAliasingStrategy {
 	 * @return True if this aliasing strategy has already computed aliases in the
 	 * given method, otherwise false.
 	 */
-	public boolean hasProcessedMethod(SootMethod method);
+    boolean hasProcessedMethod(SootMethod method);
 	
 	/**
 	 * Gets whether this analysis is lazy, i.e., needs all taints to be
@@ -93,7 +93,7 @@ public interface IAliasingStrategy {
 	 * @return True if the alias analysis requires all taints to be propagated
 	 * into all methods
 	 */
-	public boolean isLazyAnalysis();
+    boolean isLazyAnalysis();
 	
 	/**
 	 * If this aliasing strategy uses an additional IFDS solver, it is returned
@@ -102,11 +102,11 @@ public interface IAliasingStrategy {
 	 * @return The additional IFDS solver used by this aliasing strategy if
 	 * applicable, null otherwise
 	 */
-	public IInfoflowSolver getSolver();
+    IInfoflowSolver getSolver();
 	
 	/**
 	 * Performs a clean up, i.e., removes all generated data from memory
 	 */
-	public void cleanup();
+    void cleanup();
 
 }

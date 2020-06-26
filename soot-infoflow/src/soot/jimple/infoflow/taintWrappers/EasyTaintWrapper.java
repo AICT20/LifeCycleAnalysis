@@ -338,10 +338,8 @@ public class EasyTaintWrapper extends AbstractTaintWrapper implements Cloneable 
 			return true;
 		if (excludeTaints && excludeList.containsKey(parentClass.getName()))
 			return true;
-		if (killTaints && killList.containsKey(parentClass.getName()))
-			return true;
-		return false;
-	}
+        return killTaints && killList.containsKey(parentClass.getName());
+    }
 
 	/**
 	 * Gets the type of action the taint wrapper shall perform on a given method

@@ -1,5 +1,6 @@
 package soot.jimple.infoflow.android.source;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.callbacks.CallbackDefinition;
 import soot.jimple.infoflow.android.resources.controls.AndroidLayoutControl;
 import soot.jimple.infoflow.data.AccessPath;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
 import soot.jimple.infoflow.sourcesSinks.definitions.*;
 import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition.CallType;
 import soot.jimple.infoflow.sourcesSinks.manager.SinkInfo;
@@ -45,7 +47,7 @@ public class AccessPathBasedSourceSinkManager extends AndroidSourceSinkManager {
 	 */
 	public AccessPathBasedSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks,
 			InfoflowAndroidConfiguration config) {
-		super(sources, sinks, config);
+		super(sources, sinks, Collections.EMPTY_MAP, config);
 	}
 
 	/**
@@ -66,10 +68,10 @@ public class AccessPathBasedSourceSinkManager extends AndroidSourceSinkManager {
 	 *            A map from reference identifiers to the respective Android layout
 	 *            controls
 	 */
-	public AccessPathBasedSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks,
+	public AccessPathBasedSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks, Map<ISourceSinkCategory, ResourceLeakGroup> leakgroups,
 			Set<CallbackDefinition> callbackMethods, InfoflowAndroidConfiguration config,
 			Map<Integer, AndroidLayoutControl> layoutControls) {
-		super(sources, sinks, callbackMethods, config, layoutControls);
+		super(sources, sinks, leakgroups, callbackMethods, config, layoutControls);
 	}
 
 	@Override

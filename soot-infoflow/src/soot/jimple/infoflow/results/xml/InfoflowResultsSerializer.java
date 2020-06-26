@@ -3,14 +3,21 @@ package soot.jimple.infoflow.results.xml;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import soot.SootClass;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.data.AccessPath;
+import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
+import soot.jimple.infoflow.pattern.patterndata.Pattern2Data;
+import soot.jimple.infoflow.pattern.patterndata.Pattern3Data;
 import soot.jimple.infoflow.results.InfoflowPerformanceData;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.results.ResultSinkInfo;
@@ -78,6 +85,7 @@ public class InfoflowResultsSerializer {
 			writeDataFlows(results, writer);
 			writer.writeEndElement();
 		}
+		writePatternDatas(writer);
 
 		// Write out performance data
 		InfoflowPerformanceData performanceData = results.getPerformanceData();
@@ -89,6 +97,67 @@ public class InfoflowResultsSerializer {
 
 		writer.writeEndDocument();
 		writer.close();
+	}
+
+	private void writePatternDatas(XMLStreamWriter writer) throws XMLStreamException {
+		writer.writeStartElement(XmlConstants.Tags.patterndatas);
+		PatternDataHelper helper = PatternDataHelper.v();
+		if (helper.hasPattern1()) {
+			writer.writeStartElement(XmlConstants.Tags.patterndata);
+			writer.writeAttribute(XmlConstants.Attributes.patterndatatype, "Pattern 1");
+			Pattern1Data data = helper.getPattern1();
+			Map<SootClass, String> entrypoints = data.getInvolvedEntrypoints();
+			if (!entrypoints.isEmpty()) {
+				writer.writeStartElement(XmlConstants.Tags.entrypoints);
+				for (SootClass sootclass : entrypoints.keySet()) {
+					writer.writeStartElement(XmlConstants.Tags.entrypoint);
+					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
+					writer.writeAttribute(XmlConstants.Attributes.entrypointposition, entrypoints.get(sootclass));
+					writer.writeEndElement();
+				}
+				writer.writeEndElement();
+			}
+
+			writer.writeEndElement();
+		}
+		if (helper.hasPattern2()) {
+			writer.writeStartElement(XmlConstants.Tags.patterndata);
+			writer.writeAttribute(XmlConstants.Attributes.patterndatatype, "Pattern 2");
+			Pattern2Data data = helper.getPattern2();
+			writer.writeStartElement(XmlConstants.Tags.shouldCheck);
+			writer.writeAttribute(XmlConstants.Attributes.shouldCheck, data.shouldCheck() + "");
+			writer.writeAttribute(XmlConstants.Attributes.minSdk, data.getMinSdk() + "");
+			writer.writeAttribute(XmlConstants.Attributes.targetSdk, data.getTargetSdk() + "");
+			writer.writeEndElement();
+		}
+		if (helper.hasPattern3()) {
+			Pattern3Data data = helper.getPattern3();
+			writer.writeStartElement(XmlConstants.Tags.patterndata);
+			writer.writeAttribute(XmlConstants.Attributes.patterndatatype, "Pattern 3");
+			Map<String, Map<SootClass, Set<SootClass>>> map = data.getAllFragments();
+			if (!map.isEmpty()) {
+				for (String type : data.getAllFragments().keySet()) {
+					Map<SootClass, Set<SootClass>> fragments = map.get(type);
+					writer.writeStartElement(XmlConstants.Tags.fragments);
+					writer.writeAttribute(XmlConstants.Attributes.fragmenttype, type);
+					for (SootClass currentClass : fragments.keySet()) {
+						writer.writeStartElement(XmlConstants.Tags.fragment);
+						writer.writeAttribute(XmlConstants.Attributes.fragmentactivityclass, currentClass.getName());
+						String fragmentnames = "";
+						for (SootClass fragment : fragments.get(currentClass)) {
+							fragmentnames += fragment.getName() + " ";
+						}
+						writer.writeAttribute(XmlConstants.Attributes.fragmentclasses, fragmentnames);
+						writer.writeEndElement();
+					}
+					writer.writeEndElement();
+				}
+				writer.writeEndElement();
+			}
+			writer.writeEndElement();
+
+		}
+		writer.writeEndElement();
 	}
 
 	/**
@@ -195,8 +264,10 @@ public class InfoflowResultsSerializer {
 		if (source.getDefinition().getCategory() != null)
 			writer.writeAttribute(XmlConstants.Attributes.category,
 					source.getDefinition().getCategory().getHumanReadableDescription());
-		if (icfg != null)
+		if (icfg != null) {
 			writer.writeAttribute(XmlConstants.Attributes.method, icfg.getMethodOf(source.getStmt()).getSignature());
+//			writer.writeAttribute(XmlConstants.Attributes.methodbody, icfg.getMethodOf(source.getStmt()).getActiveBody().toString());
+		}
 
 		writeAdditionalSourceInfo(source, writer);
 		writeAccessPath(source.getAccessPath(), writer);
@@ -209,8 +280,10 @@ public class InfoflowResultsSerializer {
 				Stmt curStmt = source.getPath()[i];
 				writer.writeAttribute(XmlConstants.Attributes.statement, curStmt.toString());
 
-				if (icfg != null)
+				if (icfg != null) {
 					writer.writeAttribute(XmlConstants.Attributes.method, icfg.getMethodOf(curStmt).getSignature());
+//					writer.writeAttribute(XmlConstants.Attributes.methodbody, icfg.getMethodOf(curStmt).getActiveBody().toString());
+				}
 
 				AccessPath curAP = source.getPathAccessPaths()[i];
 				writeAccessPath(curAP, writer);

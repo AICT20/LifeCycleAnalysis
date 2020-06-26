@@ -30,6 +30,7 @@ import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.handlers.TaintPropagationHandler;
 import soot.jimple.infoflow.handlers.TaintPropagationHandler.FlowFunctionType;
 import soot.jimple.infoflow.nativeCallHandler.INativeCallHandler;
+import soot.jimple.infoflow.pattern.patterntag.LCSPMethodTag;
 import soot.jimple.infoflow.solver.IInfoflowSolver;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
@@ -133,6 +134,8 @@ public abstract class AbstractInfoflowProblem
 		return false;
 	}
 
+	//这两个方法需要全部废弃了，这里进行了activation的加速————遇到
+//
 	protected boolean isCallSiteActivatingTaint(Unit callSite, Unit activationUnit) {
 		if (!manager.getConfig().getFlowSensitiveAliasing())
 			return false;
@@ -285,21 +288,22 @@ public abstract class AbstractInfoflowProblem
 	 * @return True if the method is excluded and shall not be analyzed, otherwise
 	 *         false
 	 */
-	protected boolean isExcluded(SootMethod sm) {
+	//lifecycle-add 添加了一个boolean，让我们选择性读入特殊函数，比如Thread.start()
+	protected boolean isExcluded(SootMethod sm, boolean shouldGoThroughSPMethod) {
+		if (shouldGoThroughSPMethod && sm.hasTag(LCSPMethodTag.TAG_NAME)) {
+			return false;
+		}
 		// Is this an essential method?
 		if (sm.hasTag(FlowDroidEssentialMethodTag.TAG_NAME))
 			return false;
 
-		// We can exclude Soot library classes
+		// We can exclude Soot library classes 这里会不小心把Thread相关的函数，比如start, run等等都跳过
 		if (manager.getConfig().getExcludeSootLibraryClasses() && sm.getDeclaringClass().isLibraryClass())
 			return true;
 
 		// We can ignore system classes according to FlowDroid's definition
-		if (manager.getConfig().getIgnoreFlowsInSystemPackages()
-				&& SystemClassHandler.isClassInSystemPackage(sm.getDeclaringClass().getName()))
-			return true;
-
-		return false;
-	}
+        return manager.getConfig().getIgnoreFlowsInSystemPackages()
+                && SystemClassHandler.isClassInSystemPackage(sm.getDeclaringClass().getName());
+    }
 
 }

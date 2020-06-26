@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import heros.solver.Pair;
+import soot.jimple.IfStmt;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.collect.ConcurrentIdentityHashMultiMap;
@@ -60,11 +61,9 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 			if (null == pred) {
 				return;
 			}
-			if (!checkKillingStmts(pred)) {
+
+			if (!checkKillingStmts(pred) || ! checkKillingIfStmts(pred)) {
 				return;//说明本身这个pred的killstmts就有问题
-			}
-			if (pred.getCurrentStmt().toString().equals("return $r0")) {
-				System.out.println();
 			}
 			if (paths != null) {
 				for (SourceContextAndPath scap : paths) {
@@ -73,15 +72,25 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 						// Schedule the predecessor
 						scheduleDependentTask(new SourceFindingTask(pred));
 					} else {
-						System.out.println();
+//						System.out.println();
 					}
 
 					// Process the predecessor's neighbors
 					if (pred.getNeighbors() != null) {
 						for (Abstraction neighbor : pred.getNeighbors()) {
-							if (!checkKillingStmts(neighbor)) {
+//							neighbor.equals(pred);
+							if (!checkKillingStmts(neighbor) || !checkKillingIfStmts(neighbor)) {
 								continue;
 							}
+
+//							if (null != pred.getCurrentStmt() && pred.getCurrentStmt().toString().equals("return")) {
+//								String m = manager.getICFG().getMethodOf(pred.getCurrentStmt()).getSignature();
+//								if (m.contains("void onReceive")) {
+//									if (neighbor.getCorrespondingCallSite().toString().contains("UnregisterReceiver: void <init>()")) {
+//										continue;
+//									}
+//								}
+//							}
 							if (processPredecessor(scap, neighbor)) {
 								// Schedule the predecessor
 								scheduleDependentTask(new SourceFindingTask(neighbor));
@@ -103,6 +112,23 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 			}
 			for (Stmt s: pred.getKillStmts()) {
 				if (currentAllKillStmts.contains(s)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		private boolean checkKillingIfStmts(Abstraction pred) {
+			if (null == pred.getIfKillStmts()) {
+				return true;
+			}
+			SourceSinkDefinition def = MyOwnUtils.getOriginalSource(pred);//这个反正都是一样的
+			Set<Pair<Stmt, Boolean>> currentAllKillIfStmts = TaintPropagationResults.getAllIfkillStmts().get(def);
+			if (null == currentAllKillIfStmts) {
+				return true;
+			}
+			for (Pair<IfStmt, Boolean> p: pred.getIfKillStmts()) {
+				if (currentAllKillIfStmts.contains(p)) {
 					return false;
 				}
 			}
@@ -171,10 +197,8 @@ public class ContextSensitivePathBuilder extends ConcurrentAbstractionPathBuilde
 			if (getClass() != obj.getClass())
 				return false;
 			SourceFindingTask other = (SourceFindingTask) obj;
-			if (abstraction != other.abstraction)
-				return false;
-			return true;
-		}
+            return abstraction == other.abstraction;
+        }
 
 	}
 

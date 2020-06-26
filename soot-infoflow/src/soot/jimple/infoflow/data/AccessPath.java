@@ -132,10 +132,8 @@ public class AccessPath implements Cloneable {
 	public boolean firstFieldMatches(SootField field) {
 		if (fields == null || fields.length == 0)
 			return false;
-		if (field == fields[0])
-			return true;
-		return false;
-	}
+        return field == fields[0];
+    }
 
 	public Type getFirstFieldType() {
 		if (fieldTypes == null || fieldTypes.length == 0)

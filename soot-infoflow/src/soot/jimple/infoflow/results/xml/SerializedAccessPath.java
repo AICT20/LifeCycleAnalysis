@@ -72,10 +72,8 @@ public class SerializedAccessPath {
 			return false;
 		if (taintSubFields != other.taintSubFields)
 			return false;
-		if (!Arrays.equals(types, other.types))
-			return false;
-		return true;
-	}
+        return Arrays.equals(types, other.types);
+    }
 	
 	/**
 	 * Gets the tainted base object

@@ -3,6 +3,8 @@
 
 package soot.jimple.infoflow.android.iccta;
 
+import com.google.protobuf.AbstractMessageLite;
+
 @SuppressWarnings("unused")
 public final class Ic3Data {
 	private Ic3Data() {
@@ -11698,7 +11700,7 @@ public final class Ic3Data {
 			public Builder addAllPermissions(java.lang.Iterable<? extends Ic3Data.Application.Permission> values) {
 				if (permissionsBuilder_ == null) {
 					ensurePermissionsIsMutable();
-					super.addAll(values, permissions_);
+					addAll(values, permissions_);
 					onChanged();
 				} else {
 					permissionsBuilder_.addAllMessages(values);
@@ -11869,7 +11871,7 @@ public final class Ic3Data {
 			 */
 			public Builder addAllUsedPermissions(java.lang.Iterable<java.lang.String> values) {
 				ensureUsedPermissionsIsMutable();
-				super.addAll(values, usedPermissions_);
+				addAll(values, usedPermissions_);
 				onChanged();
 				return this;
 			}
@@ -12044,7 +12046,7 @@ public final class Ic3Data {
 			public Builder addAllComponents(java.lang.Iterable<? extends Ic3Data.Application.Component> values) {
 				if (componentsBuilder_ == null) {
 					ensureComponentsIsMutable();
-					super.addAll(values, components_);
+					addAll(values, components_);
 					onChanged();
 				} else {
 					componentsBuilder_.addAllMessages(values);

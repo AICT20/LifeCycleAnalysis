@@ -1,6 +1,9 @@
 package soot.jimple.infoflow.sourcesSinks.definitions;
 
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -25,6 +28,11 @@ public class NullSourceSinkDefinitionProvider implements
 	@Override
 	public Set<SourceSinkDefinition> getAllMethods() {
 		return Collections.emptySet();
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return  Collections.emptyMap();
 	}
 
 }

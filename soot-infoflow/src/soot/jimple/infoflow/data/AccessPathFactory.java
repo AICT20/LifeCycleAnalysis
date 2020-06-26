@@ -84,9 +84,7 @@ public class AccessPathFactory {
 			BasePair other = (BasePair) obj;
 			if (!Arrays.equals(fields, other.fields))
 				return false;
-			if (!Arrays.equals(types, other.types))
-				return false;
-			return true;
+			return Arrays.equals(types, other.types);
 		}
 
 		@Override
@@ -108,7 +106,7 @@ public class AccessPathFactory {
 	private MyConcurrentHashMap<Type, Set<BasePair>> baseRegister = new MyConcurrentHashMap<Type, Set<BasePair>>();
 
 	public AccessPath createAccessPath(Value val, boolean taintSubFields) {
-		return createAccessPath(val, (SootField[]) null, null, (Type[]) null, taintSubFields, false, true,
+		return createAccessPath(val, null, null, null, taintSubFields, false, true,
 				ArrayTaintType.ContentsAndLength);
 	}
 

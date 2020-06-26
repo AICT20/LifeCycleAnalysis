@@ -12,6 +12,6 @@ import soot.jimple.Stmt;
  */
 public interface IValueProvider {
 
-	public <T> T getValue(SootMethod sm, Stmt stmt, Value value, Class<T> type);
+	<T> T getValue(SootMethod sm, Stmt stmt, Value value, Class<T> type);
 
 }

@@ -54,12 +54,9 @@ public class SerializedSourceInfo extends AbstractSerializedSourceSink {
 			return false;
 		SerializedSourceInfo other = (SerializedSourceInfo) obj;
 		if (propagationPath == null) {
-			if (other.propagationPath != null)
-				return false;
-		} else if (!propagationPath.equals(other.propagationPath))
-			return false;
-		return true;
-	}
+            return other.propagationPath == null;
+		} else return propagationPath.equals(other.propagationPath);
+    }
 	
 	/**
 	 * Gets the propagation of this data flow

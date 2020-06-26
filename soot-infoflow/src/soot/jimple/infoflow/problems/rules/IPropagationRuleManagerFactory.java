@@ -24,7 +24,7 @@ public interface IPropagationRuleManagerFactory {
 	 *            The container that receives all detected flows
 	 * @return The new propagation rule manager
 	 */
-	public PropagationRuleManager createRuleManager(InfoflowManager manager, Abstraction zeroValue,
-			TaintPropagationResults results);
+    PropagationRuleManager createRuleManager(InfoflowManager manager, Abstraction zeroValue,
+                                             TaintPropagationResults results);
 
 }

@@ -24,6 +24,7 @@ import soot.jimple.JimpleBody;
 import soot.jimple.NullConstant;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
+import soot.jimple.infoflow.pattern.patterntag.LCSPMethodTag;
 
 /**
  * Class for patching OS libraries such as java.lang.Thread so that we get
@@ -42,9 +43,9 @@ public class LibraryClassPatcher {
 	 * @author Steven Arzt
 	 *
 	 */
-	private static interface IMessageObtainCodeInjector {
+	private interface IMessageObtainCodeInjector {
 
-		public void injectCode(Body body, Local messageLocal);
+		void injectCode(Body body, Local messageLocal);
 
 	}
 
@@ -338,6 +339,12 @@ public class LibraryClassPatcher {
 			return;
 		smRun.addTag(new FlowDroidEssentialMethodTag());
 
+		//lifecycle-add 这里的start需要特殊处理下，
+		SootMethod smStart = sc.getMethodUnsafe("void start()");
+		if (smStart == null || (smStart.hasActiveBody() && !isStubImplementation(smStart.getActiveBody())))
+			return;
+		smStart.addTag(new LCSPMethodTag());
+
 		SootMethod smCons = sc.getMethodUnsafe("void <init>(java.lang.Runnable)");
 		if (smCons == null || (smCons.hasActiveBody() && !isStubImplementation(smCons.getActiveBody())))
 			return;
@@ -346,6 +353,12 @@ public class LibraryClassPatcher {
 		SootClass runnable = Scene.v().getSootClassUnsafe("java.lang.Runnable");
 		if (runnable == null || runnable.resolvingLevel() < SootClass.SIGNATURES)
 			return;
+
+		//特殊处理下
+		SootMethod runnableRun = runnable.getMethodUnsafe("void run()");
+		if (runnableRun == null || (runnableRun.hasActiveBody() && !isStubImplementation(runnableRun.getActiveBody())))
+			return;
+		runnableRun.addTag(new LCSPMethodTag());
 
 		// Create a field for storing the runnable
 		int fieldIdx = 0;
@@ -358,14 +371,20 @@ public class LibraryClassPatcher {
 		// Create a new constructor
 		patchThreadConstructor(smCons, runnable, fldTarget);
 
-		// Create a new Thread.start() method
+//		// Create a new Thread.start() method
 		patchThreadRunMethod(smRun, runnable, fldTarget);
+
+		//这里不太对啊，上面的仅仅处理run，我们这里额外处理个start   错了
+		//这里是对的，但是有个大坑在这里————Soot似乎是将start和run等同对待，在触发start方法时，会同时对应找run和start两个方法
+		// Create a new Thread.start() method
+//		patchThreadRunMethod(smStart, runnable, fldTarget);
 	}
+
 
 	/**
 	 * Creates a synthetic "java.lang.Thread.run()" method implementation that calls
 	 * the target previously passed in when the constructor was called
-	 * 
+	 *
 	 * @param smRun
 	 *            The run() method for which to create a synthetic implementation
 	 * @param runnable
@@ -392,8 +411,9 @@ public class LibraryClassPatcher {
 
 		Unit retStmt = Jimple.v().newReturnVoidStmt();
 
+		//lifecycle-add 这里不晓得为什么有个if语句可以跳过run的执行，会极大导致我们的误判, 先删了
 		// If (this.target == null) return;
-		b.getUnits().add(Jimple.v().newIfStmt(Jimple.v().newEqExpr(targetLocal, NullConstant.v()), retStmt));
+//		b.getUnits().add(Jimple.v().newIfStmt(Jimple.v().newEqExpr(targetLocal, NullConstant.v()), retStmt));
 
 		// Invoke target.run()
 		b.getUnits().add(Jimple.v().newInvokeStmt(
@@ -401,6 +421,8 @@ public class LibraryClassPatcher {
 
 		b.getUnits().add(retStmt);
 	}
+
+
 
 	/**
 	 * Creates a synthetic "<init>(java.lang.Runnable)" method implementation that
@@ -530,7 +552,7 @@ public class LibraryClassPatcher {
 		b.getUnits()
 				.add(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(thisLocal,
 						Scene.v().makeMethodRef(sc, "handleMessage",
-								Collections.<Type>singletonList(method.getParameterType(0)), VoidType.v(), false),
+								Collections.singletonList(method.getParameterType(0)), VoidType.v(), false),
 						firstParam)));
 
 		Unit retStmt = Jimple.v().newReturnVoidStmt();
@@ -575,7 +597,7 @@ public class LibraryClassPatcher {
 
 		// Invoke p0.run()
 		b.getUnits().add(Jimple.v().newInvokeStmt(Jimple.v().newInterfaceInvokeExpr(firstParam,
-				Scene.v().makeMethodRef(runnable, "run", Collections.<Type>emptyList(), VoidType.v(), false))));
+				Scene.v().makeMethodRef(runnable, "run", Collections.emptyList(), VoidType.v(), false))));
 
 		Unit retStmt = Jimple.v().newReturnStmt(IntConstant.v(1));
 		b.getUnits().add(retStmt);

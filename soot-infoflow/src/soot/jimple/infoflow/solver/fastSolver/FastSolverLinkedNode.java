@@ -13,7 +13,7 @@ public interface FastSolverLinkedNode<D, N> extends Cloneable {
 	 * 
 	 * @return True if the neighbor was added, false if it was rejected
 	 */
-	public boolean addNeighbor(D originalAbstraction);
+    boolean addNeighbor(D originalAbstraction);
 
 
 	/**
@@ -21,7 +21,7 @@ public interface FastSolverLinkedNode<D, N> extends Cloneable {
 	 * 
 	 * @return The number of neighbors already registered with this abstraction
 	 */
-	public int getNeighborCount();
+    int getNeighborCount();
 
 	/**
 	 * Explicitly sets the predecessor of this node.
@@ -29,21 +29,21 @@ public interface FastSolverLinkedNode<D, N> extends Cloneable {
 	 * @param predecessor
 	 *            The predecessor node to set
 	 */
-	public void setPredecessor(D predecessor);
+    void setPredecessor(D predecessor);
 
 	/**
 	 * Gets the predecessor of this node
 	 * 
 	 * @return The predecessor of this node is applicable, null for source nodes
 	 */
-	public D getPredecessor();
+    D getPredecessor();
 
 	/**
 	 * Clones this data flow abstraction
 	 * 
 	 * @return A clone of the current data flow abstraction
 	 */
-	public D clone();
+    D clone();
 
 	/**
 	 * If this abstraction supports alias analysis, this returns the active copy of
@@ -51,13 +51,13 @@ public interface FastSolverLinkedNode<D, N> extends Cloneable {
 	 * 
 	 * @return The active copy if supported, otherwise the "this" reference
 	 */
-	public D getActiveCopy();
+    D getActiveCopy();
 
 	/**
 	 * Gets the length of the path over which this node was propagated
 	 * 
 	 * @return The length of the path over which this node was propagated
 	 */
-	public int getPathLength();
+    int getPathLength();
 
 }

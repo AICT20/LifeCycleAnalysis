@@ -3,8 +3,10 @@ package soot.jimple.infoflow.problems;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import heros.solver.Pair;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.IfStmt;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.collect.ConcurrentHashSet;
@@ -38,7 +40,7 @@ public class TaintPropagationResults {
 		 * @return True if the data flow analysis shall continue, otherwise
 		 *         false
 		 */
-		public boolean onResultAvailable(AbstractionAtSink abs);
+        boolean onResultAvailable(AbstractionAtSink abs);
 
 	}
 
@@ -157,10 +159,18 @@ public class TaintPropagationResults {
 				}
 
 			}
-			//再处理returnstmt
-			Set<Stmt> defreturnStmts = allreturnStmts.get(sourceDef);
-			if (null != defreturnStmts && defreturnStmts.contains(absink.getSinkStmt())) {
-				continue;
+			//再处理ifstmt
+			Set<Pair<IfStmt, Boolean>> currentkillifStmts = abs.getIfKillStmts();
+			if (null != currentkillifStmts && !currentkillifStmts.isEmpty()) {
+				Set<Pair<Stmt, Boolean>> defkillifStmts = allkillifStmts.get(sourceDef);
+				if (null != defkillifStmts && !defkillifStmts.isEmpty()) {
+					Set<Stmt> tempSet = new HashSet(currentkillifStmts);
+					tempSet.retainAll(defkillifStmts);
+					if (!tempSet.isEmpty()) {
+						//如果有交集，说明当前的这个记录是错误的，应当删除
+						continue;
+					}
+				}
 			}
 
 //			if (abs.getKillStmts() == null) {
@@ -186,9 +196,9 @@ public class TaintPropagationResults {
 				currentAbs = currentAbs.getPredecessor();
 			}
 
-			if (abs.getKillStmts() == null) {
-				System.out.println();
-			}
+//			if (abs.getKillStmts() == null) {
+//				System.out.println();
+//			}
 		}
 
 		this.results = newresults;
@@ -198,15 +208,18 @@ public class TaintPropagationResults {
 	//lifecycle-add 我们加一点对于killstmt的全局内容 注意！！！这个allkillStmts仅针对当前的单个taint
 	public static void initLCResults() {
 		allkillStmts = new ConcurrentHashMap<>();
-		allreturnStmts = new ConcurrentHashMap<>();
+		allkillifStmts = new ConcurrentHashMap<>();
 	}
 	public static void clearLCResults() {
 		allkillStmts.clear();
-		allreturnStmts.clear();
+		allkillifStmts.clear();
 	}
 	protected static Map<SourceSinkDefinition, Set<Stmt>> allkillStmts = null;//保存所有的kill操作的位置
 	public static Map<SourceSinkDefinition, Set<Stmt>> getAllkillStmts() {
 		return allkillStmts;
+	}
+	public static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> getAllIfkillStmts() {
+		return allkillifStmts;
 	}
 	public static boolean addKillStmts(SourceSinkDefinition def, Stmt stmt) {
 		Set<Stmt> killstmts = allkillStmts.get(def);
@@ -221,32 +234,27 @@ public class TaintPropagationResults {
 		if (null == killstmts) {
 			return false;
 		}
-		if (!killstmts.contains(stmt)) {
-			return false;
+        return killstmts.contains(stmt);
+    }
+
+	protected static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> allkillifStmts = null;//保存所有taint能正常传递的return语句
+	//这里 true表示需要跳转时进行kill，false表示不跳转时kill
+	public static boolean addKillIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean shouldJump) {
+		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
+		if (null == killifstmts) {
+			killifstmts = new ConcurrentHashSet<>();
+			allkillifStmts.put(def, killifstmts);
 		}
-		return true;
+		return killifstmts.add(new Pair<Stmt, Boolean>(stmt, shouldJump));
 	}
 
-	protected static Map<SourceSinkDefinition, Set<Stmt>> allreturnStmts = null;//保存所有taint能正常传递的return语句
-	public static boolean addReturnStmts(SourceSinkDefinition def, Stmt stmt) {
-		Set<Stmt> returnstmts = allreturnStmts.get(def);
-		if (null == returnstmts) {
-			returnstmts = new ConcurrentHashSet<>();
-			allreturnStmts.put(def, returnstmts);
-		}
-		return returnstmts.add(stmt);
-	}
-
-	public static boolean shouldBeKilledForReturnStmts(SourceSinkDefinition def, Stmt stmt) {
-		Set<Stmt> returnstmts = allreturnStmts.get(def);
-		if (null == returnstmts) {
+	public static boolean shouldBeKilledForIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean isJumping) {
+		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
+		if (null == killifstmts) {
 			return false;
 		}
-		if (!returnstmts.contains(stmt)) {
-			return false;
-		}
-		return true;
-	}
+        return killifstmts.contains(new Pair<IfStmt, Boolean>(stmt, isJumping));
+    }
 
 
 

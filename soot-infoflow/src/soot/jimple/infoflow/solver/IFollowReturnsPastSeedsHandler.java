@@ -19,6 +19,6 @@ public interface IFollowReturnsPastSeedsHandler {
 	 * @param u The return site
 	 * @param d2 The abstraction at the return site
 	 */
-	public void handleFollowReturnsPastSeeds(Abstraction d1, Unit u, Abstraction d2);
+    void handleFollowReturnsPastSeeds(Abstraction d1, Unit u, Abstraction d2);
 	
 }

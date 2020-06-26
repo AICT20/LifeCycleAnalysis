@@ -104,10 +104,8 @@ public class ContextInsensitivePathBuilder extends ConcurrentAbstractionPathBuil
 			if (getClass() != obj.getClass())
 				return false;
 			SourceFindingTask other = (SourceFindingTask) obj;
-			if (abstraction != other.abstraction)
-				return false;
-			return true;
-		}
+            return abstraction == other.abstraction;
+        }
 
 	}
 

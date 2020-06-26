@@ -71,6 +71,8 @@ public class SourcePropagationRule extends AbstractTaintPropagationRule {
 			}
 			if (killAll != null)
 				killAll.value = true;
+		} else {
+			//TODO lifecycle-add  针对Taint相互包含的情况，需要进行处理下
 		}
 		return null;
 	}

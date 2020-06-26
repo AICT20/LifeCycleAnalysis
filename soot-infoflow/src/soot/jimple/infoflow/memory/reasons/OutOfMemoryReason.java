@@ -43,10 +43,8 @@ public class OutOfMemoryReason implements ISolverTerminationReason {
 		if (getClass() != obj.getClass())
 			return false;
 		OutOfMemoryReason other = (OutOfMemoryReason) obj;
-		if (currentMemory != other.currentMemory)
-			return false;
-		return true;
-	}
+        return currentMemory == other.currentMemory;
+    }
 
 	@Override
 	public ISolverTerminationReason combine(ISolverTerminationReason terminationReason) {

@@ -57,7 +57,7 @@ public class ArrayPropagationRule extends AbstractTaintPropagationRule {
 
 				// Taint the array length
 				AccessPath ap = getManager().getAccessPathFactory().createAccessPath(leftVal, null, IntType.v(),
-						(Type[]) null, true, false, true, ArrayTaintType.ContentsAndLength);
+						null, true, false, true, ArrayTaintType.ContentsAndLength);
 				newAbs = source.deriveNewAbstraction(ap, assignStmt);
 			}
 		}

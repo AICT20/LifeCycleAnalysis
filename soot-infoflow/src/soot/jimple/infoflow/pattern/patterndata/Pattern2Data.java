@@ -47,4 +47,12 @@ public class Pattern2Data extends PatternData {
 
     }
 
+    public int getMinSdk() {
+        return this.getMinSdk();
+    }
+
+    public int getTargetSdk() {
+        return this.getTargetSdk();
+    }
+
 }

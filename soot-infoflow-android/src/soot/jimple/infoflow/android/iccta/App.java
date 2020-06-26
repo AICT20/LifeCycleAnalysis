@@ -214,10 +214,7 @@ class LoggingPoint {
 		if (this.stmtSequence != other.stmtSequence)
 			return false;
 		if (this.app == other.app) {
-			if (this.id == other.id)
-				return true;
-			else
-				return false;
+			return this.id == other.id;
 		}
 		return true;
 	}
@@ -293,13 +290,10 @@ class Intent {
 		/*
 		 * if (null != action && !action.isEmpty()) { return true; }
 		 */
-		if (component != null
-				&& !component.isEmpty()
-				&& !component.contains("*")
-				&& !component.contains("NULL-CONSTANT"))
-			return false;
-
-		return true;
+		return component == null
+				|| component.isEmpty()
+				|| component.contains("*")
+				|| component.contains("NULL-CONSTANT");
 	}
 
 	@Override
@@ -537,10 +531,7 @@ class Intent {
 		if (string.toLowerCase().contains("harvester"))
 			return true;
 
-		if (string.contains(".*"))
-			return true;
-
-		return false;
+		return string.contains(".*");
 	}
 
 	public boolean hasImportantImpreciseValues() {
@@ -592,10 +583,7 @@ class Intent {
 			 * external use, so the default value is "true".
 			 */
 
-			if (component.getIntentFiltersCount() > 0)
-				exported = true;
-			else
-				exported = false;
+			exported = component.getIntentFiltersCount() > 0;
 
 			if (component.hasExported())
 				// Overriden

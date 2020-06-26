@@ -60,12 +60,9 @@ abstract class AbstractSourceSinkInfo {
 		} else if (!definition.equals(other.definition))
 			return false;
 		if (userData == null) {
-			if (other.userData != null)
-				return false;
-		} else if (!userData.equals(other.userData))
-			return false;
-		return true;
-	}
+            return other.userData == null;
+		} else return userData.equals(other.userData);
+    }
 
 	/**
 	 * Gets the user data to be tracked together with this source

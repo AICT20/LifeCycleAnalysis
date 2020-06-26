@@ -84,11 +84,8 @@ public abstract class SourceSinkDefinition {
 			return false;
 		SourceSinkDefinition other = (SourceSinkDefinition) obj;
 		if (category == null) {
-			if (other.category != null)
-				return false;
-		} else if (!category.equals(other.category))
-			return false;
-		return true;
-	}
+            return other.category == null;
+		} else return category.equals(other.category);
+    }
 
 }

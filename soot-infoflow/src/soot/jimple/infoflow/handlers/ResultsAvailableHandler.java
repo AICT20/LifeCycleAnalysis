@@ -24,6 +24,6 @@ public interface ResultsAvailableHandler {
 	 * @param cfg The program graph
 	 * @param results The results that were computed
 	 */
-	public void onResultsAvailable(IInfoflowCFG cfg, InfoflowResults results);
+    void onResultsAvailable(IInfoflowCFG cfg, InfoflowResults results);
 
 }

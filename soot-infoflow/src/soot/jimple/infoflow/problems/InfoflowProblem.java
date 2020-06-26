@@ -54,6 +54,7 @@ import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
 import soot.jimple.infoflow.pattern.patterntag.LCExitFinishTag;
 import soot.jimple.infoflow.problems.rules.IPropagationRuleManagerFactory;
 import soot.jimple.infoflow.problems.rules.PropagationRuleManager;
+import soot.jimple.infoflow.resourceleak.ResourceLeakOptimizer;
 import soot.jimple.infoflow.solver.functions.SolverCallFlowFunction;
 import soot.jimple.infoflow.solver.functions.SolverCallToReturnFlowFunction;
 import soot.jimple.infoflow.solver.functions.SolverNormalFlowFunction;
@@ -357,8 +358,13 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 					public Set<Abstraction> computeTargetsInternal(Abstraction d1, Abstraction source) {
 						// Check whether we must activate a taint
 						final Abstraction newSource;
-						if (!source.isAbstractionActive() && src == source.getActivationUnit())
+						if (!source.isAbstractionActive() && src == source.getActivationUnit()) {
+//							if (null != source.getAccessPath() && source.getAccessPath().toString().contains("$r4(org.microg.gms.gservices.GServicesProvider) <org.microg.gms.gservices.GServicesProvider")) {
+//								System.out.println();
+//							}
 							newSource = source.getActiveCopy();
+
+						}
 						else
 							newSource = source;
 
@@ -368,7 +374,8 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						Set<Abstraction> res = propagationRules.applyNormalFlowFunction(d1, newSource, stmt,
 								(Stmt) dest, killSource, killAll);
 						if (killAll.value)
-							return Collections.<Abstraction>emptySet();
+							return Collections.emptySet();
+
 
 						// Propagate over an assignment
 						if (src instanceof AssignStmt) {
@@ -390,7 +397,7 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						}
 
 						// Return what we have so far
-						return res == null || res.isEmpty() ? Collections.<Abstraction>emptySet() : res;
+						return res == null || res.isEmpty() ? Collections.emptySet() : res;
 					}
 
 				};
@@ -437,7 +444,7 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 						// Do not propagate into Soot library classes if that
 						// optimization is enabled
-						if (isExcluded(dest))
+						if (isExcluded(dest, false))
 							return null;
 
 						// Notify the handler if we have one
@@ -446,8 +453,12 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 									FlowFunctionType.CallFlowFunction);
 
 						// We might need to activate the abstraction
-						if (!source.isAbstractionActive() && source.getActivationUnit() == src)
+						if (!source.isAbstractionActive() && source.getActivationUnit() == src) {
+//							if (null != source.getAccessPath() && source.getAccessPath().toString().contains("$r4(org.microg.gms.gservices.GServicesProvider) <org.microg.gms.gservices.GServicesProvider")) {
+//								System.out.println();
+//							}
 							source = source.getActiveCopy();
+						}
 
 						ByReferenceBoolean killAll = new ByReferenceBoolean();
 						Set<Abstraction> res = propagationRules.applyCallFlowFunction(d1, source, stmt, dest, killAll);
@@ -461,14 +472,16 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						// Map the source access path into the callee
 						Set<AccessPath> resMapping = mapAccessPathToCallee(dest, ie, paramLocals, thisLocal,
 								source.getAccessPath());
-						if (resMapping == null) {
+						if (resMapping == null && ResourceLeakOptimizer.v().shouldJumpIntoForKill(dest)) {
 							//当没有对应参数时，自身也要传递进去
 							Abstraction newSource = source.deriveNewAbstractionOnCallAndReturn(stmt);
 							res.add(newSource);
 							return res;
 						}
+						if (resMapping == null) {
+							resMapping = new HashSet<>();
+						}
 						//而如果有对应参数可以传递进去时，不需要把自身也传递进去
-
 						// Translate the access paths into abstractions
 						Set<Abstraction> resAbs = new HashSet<Abstraction>(resMapping.size());
 						if (res != null && !res.isEmpty())
@@ -547,8 +560,12 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						if (!source.isAbstractionActive())
 							if (callSite != null)
 								if (callSite == source.getActivationUnit()
-										|| isCallSiteActivatingTaint(callSite, source.getActivationUnit()))
+										|| isCallSiteActivatingTaint(callSite, source.getActivationUnit())) {
+//									if (null != source.getAccessPath() && source.getAccessPath().toString().contains("$r4(org.microg.gms.gservices.GServicesProvider) <org.microg.gms.gservices.GServicesProvider")) {
+//										System.out.println();
+//									}
 									newSource = source.getActiveCopy();
+								}
 
 
 						// if abstraction is not active and activeStmt was in
@@ -758,12 +775,8 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 				for (int i = 0; i < invExpr.getArgCount(); i++)
 					callArgs[i] = invExpr.getArg(i);
 
-				final boolean isSink = (manager.getSourceSinkManager() != null)
-						? manager.getSourceSinkManager().getSinkInfo(iCallStmt, manager, null) != null
-						: false;
-				final boolean isSource = (manager.getSourceSinkManager() != null)
-						? manager.getSourceSinkManager().getSourceInfo(iCallStmt, manager) != null
-						: false;
+				final boolean isSink = (manager.getSourceSinkManager() != null) && manager.getSourceSinkManager().getSinkInfo(iCallStmt, manager, null) != null;
+				final boolean isSource = (manager.getSourceSinkManager() != null) && manager.getSourceSinkManager().getSourceInfo(iCallStmt, manager) != null;
 
 				final SootMethod callee = invExpr.getMethod();
 				final boolean hasValidCallees = hasValidCallees(call);
@@ -788,8 +801,13 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						// check inactive elements:
 						Abstraction newSource;
 						if (!source.isAbstractionActive() && (call == source.getActivationUnit()
-								|| isCallSiteActivatingTaint(call, source.getActivationUnit())))
+								|| isCallSiteActivatingTaint(call, source.getActivationUnit()))) {
+//							if (null != source.getAccessPath() && source.getAccessPath().toString().contains("$r4(org.microg.gms.gservices.GServicesProvider) <org.microg.gms.gservices.GServicesProvider")) {
+//								System.out.println();
+//							}
 							newSource = source.getActiveCopy();
+
+						}
 						else
 							newSource = source;
 						//lifecycle-add 针对Pattern1的处理
@@ -807,7 +825,7 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 						// Do not propagate zero abstractions
 						if (source == getZeroValue())
-							return res == null || res.isEmpty() ? Collections.<Abstraction>emptySet() : res;
+							return res == null || res.isEmpty() ? Collections.emptySet() : res;
 
 						// Initialize the result set
 						if (res == null)
@@ -819,7 +837,16 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 						//lifecycle-add 这里大改一下，只有isExcluded的时候才能跳过，不然都需要执行getCallFlowFunction
 						boolean passOn = false;
-						if (isExcluded(callee)) {
+						boolean shouldJumpInto = false;
+						ResourceLeakOptimizer o = ResourceLeakOptimizer.v();
+						for (SootMethod calledM : manager.getICFG().getCalleesOfCallAt(iCallStmt)) {
+							if (calledM.isConcrete() && o.shouldJumpIntoForKill(calledM)) {
+								shouldJumpInto = true;
+								break;
+							}
+						}
+
+						if (isExcluded(callee, true) || !shouldJumpInto) {
 							passOn = true && !killSource.value;
 						}
 
@@ -931,6 +958,13 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 							if (abs != newSource)
 								abs.setCorrespondingCallSite(iCallStmt);
 
+//						if (iCallStmt.toString().equals("virtualinvoke $r4.<android.database.sqlite.SQLiteOpenHelper: void close()>()")) {
+//							for (Abstraction abs : res) {
+//								if (abs.getKillStmts() == null) {
+//									System.out.println();
+//								}
+//							}
+//						}
 						return res;
 					}
 				};

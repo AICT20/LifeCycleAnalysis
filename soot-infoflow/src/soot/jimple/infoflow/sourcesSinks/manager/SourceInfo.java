@@ -101,11 +101,8 @@ public class SourceInfo extends AbstractSourceSinkInfo {
 			return false;
 		SourceInfo other = (SourceInfo) obj;
 		if (accessPaths == null) {
-			if (other.accessPaths != null)
-				return false;
-		} else if (!accessPaths.equals(other.accessPaths))
-			return false;
-		return true;
-	}
+            return other.accessPaths == null;
+		} else return accessPaths.equals(other.accessPaths);
+    }
 
 }

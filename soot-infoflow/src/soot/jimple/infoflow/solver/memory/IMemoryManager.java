@@ -15,7 +15,7 @@ public interface IMemoryManager<D, N> {
 	 * @param obj The object to handle
 	 * @return The new reference that shall be used instead of the old one
 	 */
-	public D handleMemoryObject(D obj);
+    D handleMemoryObject(D obj);
 	
 	/**
 	 * Tells the memory manager to optimize the given generated object. The
@@ -24,7 +24,7 @@ public interface IMemoryManager<D, N> {
 	 * @param output The output of the flow function
 	 * @return The new refrence to use instead of the original output
 	 */
-	public D handleGeneratedMemoryObject(D input, D output);
+    D handleGeneratedMemoryObject(D input, D output);
 
 	/**
 	 * Checks whether the given abstraction at the given call site is essential
@@ -37,6 +37,6 @@ public interface IMemoryManager<D, N> {
 	 * @return True if the abstraction is essential and must be kept, otherwise
 	 * false
 	 */
-	public boolean isEssentialJoinPoint(D abs, N relatedCallSite);
+    boolean isEssentialJoinPoint(D abs, N relatedCallSite);
 	
 }

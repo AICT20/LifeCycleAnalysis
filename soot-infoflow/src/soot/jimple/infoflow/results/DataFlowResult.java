@@ -58,11 +58,8 @@ public class DataFlowResult {
 		} else if (!sink.equals(other.sink))
 			return false;
 		if (source == null) {
-			if (other.source != null)
-				return false;
-		} else if (!source.equals(other.source))
-			return false;
-		return true;
-	}
+            return other.source == null;
+		} else return source.equals(other.source);
+    }
 
 }

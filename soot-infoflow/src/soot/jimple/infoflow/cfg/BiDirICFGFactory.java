@@ -17,7 +17,7 @@ import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
  */
 public interface BiDirICFGFactory {
 	
-    public IInfoflowCFG buildBiDirICFG(CallgraphAlgorithm callgraphAlgorithm,
-    		boolean enableExceptionTracking);
+    IInfoflowCFG buildBiDirICFG(CallgraphAlgorithm callgraphAlgorithm,
+                                boolean enableExceptionTracking);
 
 }

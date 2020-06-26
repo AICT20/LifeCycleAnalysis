@@ -391,11 +391,8 @@ public class MethodSourceSinkDefinition extends SourceSinkDefinition {
 		} else if (!Arrays.equals(parameters, other.parameters))
 			return false;
 		if (returnValues == null) {
-			if (other.returnValues != null)
-				return false;
-		} else if (!returnValues.equals(other.returnValues))
-			return false;
-		return true;
+			return other.returnValues == null;
+		} else return returnValues.equals(other.returnValues);
 	}
 
 	/**
@@ -463,13 +460,14 @@ public class MethodSourceSinkDefinition extends SourceSinkDefinition {
 		}
 	}
 
-	//lifecycle-add
-	public String getResourceType() {
-		String result = "unknown";
-		if (this.method.getSignature().toString().contains("org.microg.gms.gcm.GcmDatabase: void <init>")) {
-			return "database";
-		}
-		return result;
-	}
+	//lifecycle-add  没用了
+//	public String getResourceType() {
+//		String result = "unknown";
+//		String signature = this.method.getSignature();
+//		if (signature.contains("SQLiteOpenHelper") && signature.contains("<init>")) {
+//			return "database";
+//		}
+//		return result;
+//	}
 
 }

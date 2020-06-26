@@ -240,7 +240,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 
 					// If this is a fixed exception method, we must keep it
 					if (exceptionClass != null
-							&& ((InvokeExpr) s.getInvokeExpr()).getMethod().getDeclaringClass() == exceptionClass)
+							&& s.getInvokeExpr().getMethod().getDeclaringClass() == exceptionClass)
 						continue;
 
 					// If none of our pre-conditions are satisfied, there is no
@@ -316,13 +316,13 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 		SootMethod method = callSite.getInvokeExpr().getMethod();
 
 		// If this method is a source on its own, we must keep it
-		if (sourceSinkManager != null && sourceSinkManager.getSourceInfo((Stmt) callSite, manager) != null) {
+		if (sourceSinkManager != null && sourceSinkManager.getSourceInfo(callSite, manager) != null) {
 			methodFieldReads.put(method, true);
 			return true;
 		}
 
 		// If this method is a sink, we must keep it as well
-		if (sourceSinkManager != null && sourceSinkManager.getSinkInfo((Stmt) callSite, manager, null) != null) {
+		if (sourceSinkManager != null && sourceSinkManager.getSinkInfo(callSite, manager, null) != null) {
 			methodSinks.put(method, true);
 			return true;
 		}
@@ -348,7 +348,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 			return;
 
 		// Only remove actual call sites
-		if (!((Stmt) callSite).containsInvokeExpr())
+		if (!callSite.containsInvokeExpr())
 			return;
 
 		// Remove the call
@@ -372,8 +372,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 			return true;
 
 		if (returnType instanceof RefType)
-			if (((RefType) returnType).getClassName().equals("java.lang.String"))
-				return true;
+			return ((RefType) returnType).getClassName().equals("java.lang.String");
 
 		return false;
 	}
@@ -522,7 +521,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 							body.getUnits().add(assignNewEx);
 
 							InvokeStmt consNewEx = Jimple.v().newInvokeStmt(Jimple.v().newSpecialInvokeExpr(lcEx,
-									Scene.v().makeConstructorRef(exceptionClass, Collections.<Type>emptyList())));
+									Scene.v().makeConstructorRef(exceptionClass, Collections.emptyList())));
 							body.getUnits().add(consNewEx);
 
 							ThrowStmt throwNewEx = Jimple.v().newThrowStmt(lcEx);
@@ -542,7 +541,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 							} while (exceptionClass.declaresMethodByName(methodName));
 
 							// Create the new method
-							SootMethod thrower = Scene.v().makeSootMethod(methodName, Collections.<Type>emptyList(),
+							SootMethod thrower = Scene.v().makeSootMethod(methodName, Collections.emptyList(),
 									VoidType.v());
 							thrower.setModifiers(Modifier.PUBLIC | Modifier.STATIC);
 

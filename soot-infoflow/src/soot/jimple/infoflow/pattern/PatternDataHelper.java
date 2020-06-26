@@ -1,16 +1,16 @@
 package soot.jimple.infoflow.pattern;
 
-import soot.Body;
-import soot.SootClass;
-import soot.SootMethod;
-import soot.Unit;
+import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.pattern.patterndata.*;
+import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 
 import java.util.*;
 
 public class PatternDataHelper implements PatternInterface {
+    public static String[] testPattern = new String[]{"1"};
+
     String[] tags = null;
     Map<Integer, PatternData> currentPatterns = null;
 
@@ -108,10 +108,38 @@ public class PatternDataHelper implements PatternInterface {
         for (Unit u : b.getUnits()) {
             if (u instanceof Stmt && ((Stmt)u).containsInvokeExpr()) {
                 InvokeExpr exp = ((Stmt) u).getInvokeExpr();
-                returnMethods.add(exp.getMethod());
+                SootMethod innerM = exp.getMethod();
+                returnMethods.add(innerM);
+                //这里还要搞个多态
+                addPolymorphicMethods(returnMethods, innerM);
             }
         }
         return returnMethods;
+    }
+
+    private void addPolymorphicMethods(Set<SootMethod> results, SootMethod givenInnerM) {
+        SootClass currentClass = givenInnerM.getDeclaringClass();
+        Set<SootClass> allSubClass = new HashSet<>();
+        Hierarchy h = Scene.v().getActiveHierarchy();
+        if (currentClass.isInterface()) {
+            allSubClass.addAll(h.getImplementersOf(currentClass));
+            for (SootClass superInterface : h.getSubinterfacesOf(currentClass)) {
+                allSubClass.addAll(h.getImplementersOf(superInterface));
+            }
+        } else if (currentClass.isConcrete() || currentClass.isAbstract()) {
+            allSubClass.addAll(h.getSubclassesOf(currentClass));
+        }
+        if (allSubClass.isEmpty()){
+            return;
+        }
+        String subsig = givenInnerM.getSubSignature();
+        for (SootClass nowSubClass : allSubClass) {
+            SootMethod m = nowSubClass.getMethodUnsafe(subsig);
+            if (null != m) {
+                results.add(m);
+            }
+        }
+
     }
 
 

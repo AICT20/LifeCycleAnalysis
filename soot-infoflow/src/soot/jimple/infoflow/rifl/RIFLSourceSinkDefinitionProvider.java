@@ -2,15 +2,12 @@ package soot.jimple.infoflow.rifl;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 import org.xml.sax.SAXException;
 
 import soot.jimple.infoflow.data.SootMethodAndClass;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
 import soot.jimple.infoflow.rifl.RIFLDocument.Assignable;
 import soot.jimple.infoflow.rifl.RIFLDocument.Category;
 import soot.jimple.infoflow.rifl.RIFLDocument.JavaFieldSpec;
@@ -179,6 +176,11 @@ public class RIFLSourceSinkDefinitionProvider implements ISourceSinkDefinitionPr
 			allMethods.addAll(sinks);
 		}
 		return allMethods;
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return Collections.EMPTY_MAP;
 	}
 
 }

@@ -17,14 +17,14 @@ public class InfoflowConfiguration {
 	 * Enumeration containing the callgraph algorithms supported for the use with
 	 * the data flow tracker
 	 */
-	public static enum CallgraphAlgorithm {
+	public enum CallgraphAlgorithm {
 		AutomaticSelection, CHA, VTA, RTA, SPARK, GEOM, OnDemand
 	}
 
 	/**
 	 * Enumeration containing the aliasing algorithms supported by FlowDroid
 	 */
-	public static enum AliasingAlgorithm {
+	public enum AliasingAlgorithm {
 		/**
 		 * A fully flow-sensitive algorithm based on Andromeda
 		 */
@@ -48,7 +48,7 @@ public class InfoflowConfiguration {
 	 * Enumeration containing all possible modes of dead and irrelevant code
 	 * elimination
 	 */
-	public static enum CodeEliminationMode {
+	public enum CodeEliminationMode {
 		/**
 		 * Do not perform any code elimination before running the taint analysis
 		 */
@@ -69,7 +69,7 @@ public class InfoflowConfiguration {
 	/**
 	 * Enumeration containing the supported data flow solvers
 	 */
-	public static enum DataFlowSolver {
+	public enum DataFlowSolver {
 		/**
 		 * Use a flow- and context-sensitive solver
 		 */
@@ -85,7 +85,7 @@ public class InfoflowConfiguration {
 	 * Enumeration containing the supported modes how the data flow analyzer shall
 	 * handle implicit flows
 	 */
-	public static enum ImplicitFlowMode {
+	public enum ImplicitFlowMode {
 		/**
 		 * Implicit flows will not be tracked at all
 		 */
@@ -479,10 +479,8 @@ public class InfoflowConfiguration {
 				return false;
 			if (pathReconstructionTimeout != other.pathReconstructionTimeout)
 				return false;
-			if (sequentialPathProcessing != other.sequentialPathProcessing)
-				return false;
-			return true;
-		}
+            return sequentialPathProcessing == other.sequentialPathProcessing;
+        }
 
 	}
 
@@ -624,10 +622,8 @@ public class InfoflowConfiguration {
 				return false;
 			if (noPassedValues != other.noPassedValues)
 				return false;
-			if (resultSerializationTimeout != other.resultSerializationTimeout)
-				return false;
-			return true;
-		}
+            return resultSerializationTimeout == other.resultSerializationTimeout;
+        }
 
 	}
 
@@ -782,10 +778,8 @@ public class InfoflowConfiguration {
 				return false;
 			if (maxJoinPointAbstractions != other.maxJoinPointAbstractions)
 				return false;
-			if (maxAbstractionPathLength != other.maxAbstractionPathLength)
-				return false;
-			return true;
-		}
+            return maxAbstractionPathLength == other.maxAbstractionPathLength;
+        }
 
 	}
 
@@ -929,10 +923,8 @@ public class InfoflowConfiguration {
 				return false;
 			if (useSameFieldReduction != other.useSameFieldReduction)
 				return false;
-			if (useThisChainReduction != other.useThisChainReduction)
-				return false;
-			return true;
-		}
+            return useThisChainReduction == other.useThisChainReduction;
+        }
 
 	}
 
@@ -972,6 +964,8 @@ public class InfoflowConfiguration {
 	private long dataFlowTimeout = 0;
 	private double memoryThreshold = 0.9d;
 	private boolean oneSourceAtATime = false;
+
+	private boolean intraComponent = false;
 
 	/**
 	 * Merges the given configuration options into this configuration object
@@ -1592,6 +1586,9 @@ public class InfoflowConfiguration {
 		this.oneSourceAtATime = oneSourceAtATime;
 	}
 
+	public boolean isLCIntraComponent(){return this.intraComponent;}
+
+	public void setLCIntraComponent(boolean intraComponent) {this.intraComponent = intraComponent;}
 	/**
 	 * Gets the configuration for dealing with the paths between source and sinks
 	 * 
@@ -1628,6 +1625,7 @@ public class InfoflowConfiguration {
 	public AccessPathConfiguration getAccessPathConfiguration() {
 		return accessPathConfiguration;
 	}
+
 
 	/**
 	 * Prints a summary of this data flow configuration
@@ -1694,6 +1692,7 @@ public class InfoflowConfiguration {
 		temp = Double.doubleToLongBits(memoryThreshold);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + (oneSourceAtATime ? 1231 : 1237);
+		result = prime * result + (intraComponent ? 1231 : 1237);
 		result = prime * result + ((outputConfiguration == null) ? 0 : outputConfiguration.hashCode());
 		result = prime * result + ((pathConfiguration == null) ? 0 : pathConfiguration.hashCode());
 		result = prime * result + ((solverConfiguration == null) ? 0 : solverConfiguration.hashCode());
@@ -1758,6 +1757,8 @@ public class InfoflowConfiguration {
 			return false;
 		if (oneSourceAtATime != other.oneSourceAtATime)
 			return false;
+		if (intraComponent != other.intraComponent)
+			return false;
 		if (outputConfiguration == null) {
 			if (other.outputConfiguration != null)
 				return false;
@@ -1779,9 +1780,7 @@ public class InfoflowConfiguration {
 			return false;
 		if (taintAnalysisEnabled != other.taintAnalysisEnabled)
 			return false;
-		if (writeOutputFiles != other.writeOutputFiles)
-			return false;
-		return true;
-	}
+        return writeOutputFiles == other.writeOutputFiles;
+    }
 
 }

@@ -108,9 +108,7 @@ public class WrapperPropagationRule extends AbstractTaintPropagationRule {
 							&& abs.getAccessPath().isStaticFieldRef();
 
 					// If the tainted value gets overwritten, it cannot have aliases afterwards
-					boolean taintedValueOverwritten = (iStmt instanceof DefinitionStmt)
-							? Aliasing.baseMatches(((DefinitionStmt) iStmt).getLeftOp(), abs)
-							: false;
+					boolean taintedValueOverwritten = (iStmt instanceof DefinitionStmt) && Aliasing.baseMatches(((DefinitionStmt) iStmt).getLeftOp(), abs);
 
 					if (!taintedValueOverwritten)
 						if (taintsStaticField || (taintsObjectValue && abs.getAccessPath().getTaintSubFields())

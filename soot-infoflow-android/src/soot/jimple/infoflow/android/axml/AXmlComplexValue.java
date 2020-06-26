@@ -98,9 +98,9 @@ public class AXmlComplexValue {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(Integer.toString(mantissa));
+		sb.append(mantissa);
 		sb.append('.');
-		sb.append(Integer.toString(radix));
+		sb.append(radix);
 		sb.append(unit.toString());
 		return sb.toString();
 	}
@@ -128,9 +128,7 @@ public class AXmlComplexValue {
 			return false;
 		if (radix != other.radix)
 			return false;
-		if (unit != other.unit)
-			return false;
-		return true;
-	}
+        return unit == other.unit;
+    }
 
 }

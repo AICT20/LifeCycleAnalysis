@@ -4,12 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -28,13 +23,9 @@ import org.xml.sax.helpers.DefaultHandler;
 import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.data.CategoryDefinition;
 import soot.jimple.infoflow.android.data.CategoryDefinition.CATEGORY;
-import soot.jimple.infoflow.sourcesSinks.definitions.AccessPathTuple;
-import soot.jimple.infoflow.sourcesSinks.definitions.FieldSourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
-import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+import soot.jimple.infoflow.sourcesSinks.definitions.*;
 import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition.CallType;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkType;
 
 /**
  * Parses informations from the new Dataformat (XML) with the help of SAX.
@@ -564,6 +555,11 @@ public class XMLSourceSinkParser implements ISourceSinkDefinitionProvider {
 		sourcesSinks.addAll(sources);
 		sourcesSinks.addAll(sinks);
 		return sourcesSinks;
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return Collections.EMPTY_MAP;
 	}
 
 	/**

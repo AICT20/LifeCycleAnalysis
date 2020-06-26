@@ -23,7 +23,7 @@ public interface IIPCManager {
      * @param cfg the interprocedural controlflow graph
      * @return true if source method is called
      */
-    public abstract boolean isIPC(Stmt sCallSite, InterproceduralCFG<Unit, SootMethod> cfg);
+    boolean isIPC(Stmt sCallSite, InterproceduralCFG<Unit, SootMethod> cfg);
 
-    public abstract void updateJimpleForICC();
+    void updateJimpleForICC();
 }

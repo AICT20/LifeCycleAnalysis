@@ -19,7 +19,7 @@ public interface PostAnalysisHandler {
 	 * @param cfg The interprocedural data flow graph
 	 * @return The new data flow results, potentially changed by the client
 	 */
-	public InfoflowResults onResultsAvailable(InfoflowResults results,
-			IInfoflowCFG cfg);
+    InfoflowResults onResultsAvailable(InfoflowResults results,
+                                       IInfoflowCFG cfg);
 
 }

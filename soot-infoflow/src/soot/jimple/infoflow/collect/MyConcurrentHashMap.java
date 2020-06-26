@@ -22,7 +22,7 @@ public class MyConcurrentHashMap<K, V> extends ConcurrentHashMap<K, V> {
 		 * 
 		 * @return The value to put into the map
 		 */
-		public V createValue();
+        V createValue();
 
 	}
 

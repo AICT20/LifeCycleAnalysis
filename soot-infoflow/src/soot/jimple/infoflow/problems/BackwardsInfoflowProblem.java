@@ -445,12 +445,8 @@ public class BackwardsInfoflowProblem extends AbstractInfoflowProblem {
 				for (int i = 0; i < dest.getParameterCount(); i++)
 					paramLocals[i] = dest.getActiveBody().getParameterLocal(i);
 
-				final boolean isSource = manager.getSourceSinkManager() != null
-						? manager.getSourceSinkManager().getSourceInfo((Stmt) src, manager) != null
-						: false;
-				final boolean isSink = manager.getSourceSinkManager() != null
-						? manager.getSourceSinkManager().getSinkInfo(stmt, manager, null) != null
-						: false;
+				final boolean isSource = manager.getSourceSinkManager() != null && manager.getSourceSinkManager().getSourceInfo((Stmt) src, manager) != null;
+				final boolean isSink = manager.getSourceSinkManager() != null && manager.getSourceSinkManager().getSinkInfo(stmt, manager, null) != null;
 
 				// This is not cached by Soot, so accesses are more expensive
 				// than one might think
@@ -500,7 +496,7 @@ public class BackwardsInfoflowProblem extends AbstractInfoflowProblem {
 
 						// Do not propagate into Soot library classes if that
 						// optimization is enabled
-						if (isExcluded(dest))
+						if (isExcluded(dest, false))
 							return null;
 
 						// Only propagate the taint if the target field is
@@ -831,7 +827,7 @@ public class BackwardsInfoflowProblem extends AbstractInfoflowProblem {
 						}
 
 						// Additional check: If all callees are library classes, we pass it on as well
-						boolean mustPropagate = isExcluded(callee);
+						boolean mustPropagate = isExcluded(callee, true);
 
 						// If we don't know what we're calling, we just keep the original taint alive
 						mustPropagate |= interproceduralCFG().getCalleesOfCallAt(call).isEmpty();

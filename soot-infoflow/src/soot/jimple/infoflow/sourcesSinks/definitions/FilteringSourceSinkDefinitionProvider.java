@@ -1,6 +1,10 @@
 package soot.jimple.infoflow.sourcesSinks.definitions;
 
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -29,7 +33,7 @@ public class FilteringSourceSinkDefinitionProvider implements ISourceSinkDefinit
 		 * @return True if the filter accepts the given source/sink definition,
 		 *         false otherwise
 		 */
-		public boolean accepts(SourceSinkDefinition def);
+        boolean accepts(SourceSinkDefinition def);
 
 	}
 
@@ -81,6 +85,11 @@ public class FilteringSourceSinkDefinitionProvider implements ISourceSinkDefinit
 	@Override
 	public Set<SourceSinkDefinition> getAllMethods() {
 		return filter(this.innerProvider.getAllMethods());
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return Collections.EMPTY_MAP;
 	}
 
 }

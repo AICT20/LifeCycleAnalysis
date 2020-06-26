@@ -266,7 +266,7 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 
 		executor.execute(new PathEdgeProcessingTask(edge, solverId, previousN));
 		//这里先注掉，使用
-//		new PathEdgeProcessingTask(edge, solverId).run();
+//		new PathEdgeProcessingTask(edge, solverId, previousN).run();
 		propagationCount++;
 	}
 
@@ -297,6 +297,10 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 					// Early termination check
 					if (killFlag != null)
 						return;
+					Stmt stmt = (Stmt)n;
+//					if (stmt.toString().contains("interfaceinvoke target.<java.lang.Runnable: void run()>")) {
+//						System.out.println();
+//					}
 
 					// compute the call-flow function
 					FlowFunction<D> function = flowFunctions.getCallFlowFunction(n, sCalledProcN);
@@ -757,17 +761,31 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 
 			SootMethod m = icfg.getMethodOf(edge.getTarget());
 			Abstraction ab = (Abstraction)edge.factAtTarget();
-			SootMethod mainm = Scene.v().getEntryPoints().get(0);
-			N n = edge.getTarget();
 
-			Stmt stmt = (Stmt)n;
-//			if (stmt.toString().contains("if $i0 == 8 goto") && null == ab.getKillStmts()) {
+//			if (null == ab.getCurrentStmt()) {
+//				System.out.println();
+//			}
+			N n = edge.getTarget();
+//			if (n.toString().contains("specialinvoke $r0.<android.database.sqlite.SQLiteOpenHelper: void <init>(android.content.Context,java.lang.String,android.database.sqlite.SQLiteDatabase$CursorFactory,int)>($r1, \"gservices.db\", null, 3)")) {
 //				System.out.println();
 //			}
 //
-			if (m.getName().equals("dummyMainMethod_org_microg_gms_ui_AskPushPermission")) {
-				System.out.println();
-			}
+			Stmt stmt = (Stmt)n;
+//			if (stmt.toString().equals("throw $r1") && m.getName().equals("run")) {
+//				System.out.println();
+//			}
+//			if (stmt.toString().equals("virtualinvoke $r9.<java.lang.Thread: void start()>()")) {
+//				System.out.println();
+//			}
+
+//			if (stmt.toString().contains("return") && null != ab.getCorrespondingCallSite() && ab.getCorrespondingCallSite().toString().contains("virtualinvoke $r9.<java.lang.Thread: void start()")) {
+//				System.out.println();
+//			}
+//			if (stmt.toString().contains("GoogleApiClient")) {
+//				System.out.println();
+//			}
+
+
 
 			if (icfg.isCallStmt(edge.getTarget())) {
 				processCall(edge);
@@ -775,12 +793,9 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 				// note that some statements, such as "throw" may be
 				// both an exit statement and a "normal" statement
 				if (icfg.isExitStmt(edge.getTarget())) {
-//					if (m.getSignature().contains("<org.microg.gms.ui.AskPushPermission$2: void <init>(org.microg.gms.ui.AskPushPermission)>")) {
+//					if (icfg.getMethodOf(n).getSignature().contains("onCreate") && n.toString().contains("return 1")) {
 //						System.out.println();
 //					}
-					if (m.getName().equals("onStop") && ab.getKillStmts() == null) {
-						System.out.println();
-					}
 					processExit(edge);
 				}
 				if (!icfg.getSuccsOf(edge.getTarget()).isEmpty())
@@ -811,9 +826,7 @@ public class IFDSSolver<N, D extends FastSolverLinkedNode<D, N>, I extends BiDiI
 					return false;
 			} else if (!edge.equals(other.edge))
 				return false;
-			if (solverId != other.solverId)
-				return false;
-			return true;
+			return solverId == other.solverId;
 		}
 
 	}

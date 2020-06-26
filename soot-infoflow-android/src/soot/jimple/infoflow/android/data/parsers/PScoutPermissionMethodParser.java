@@ -15,12 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,10 +23,8 @@ import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.data.CategoryDefinition;
 import soot.jimple.infoflow.android.data.CategoryDefinition.CATEGORY;
 import soot.jimple.infoflow.data.SootMethodAndClass;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
-import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkType;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+import soot.jimple.infoflow.sourcesSinks.definitions.*;
 
 /**
  * Parser of the permissions to method map from the University of Toronto
@@ -284,5 +277,10 @@ public class PScoutPermissionMethodParser implements ISourceSinkDefinitionProvid
 		sourcesSinks.addAll(sinkList);
 		sourcesSinks.addAll(neitherList);
 		return sourcesSinks;
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return Collections.EMPTY_MAP;
 	}
 }

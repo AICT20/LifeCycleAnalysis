@@ -19,7 +19,7 @@ public interface IInfoflowSolver {
 	 * @return True if the edge was scheduled, otherwise (e.g., if the edge has
 	 *         already been processed earlier) false
 	 */
-	public boolean processEdge(PathEdge<Unit, Abstraction> edge, Unit previousUnit);
+    boolean processEdge(PathEdge<Unit, Abstraction> edge, Unit previousUnit);
 
 	/**
 	 * Gets the end summary of the given method for the given incoming abstraction
@@ -29,16 +29,16 @@ public interface IInfoflowSolver {
 	 * @return The end summary of the given method for the given incoming
 	 *         abstraction
 	 */
-	public Set<Pair<Unit, Abstraction>> endSummary(SootMethod m, Abstraction d3);
+    Set<Pair<Unit, Abstraction>> endSummary(SootMethod m, Abstraction d3);
 
-	public void injectContext(IInfoflowSolver otherSolver, SootMethod callee, Abstraction d3, Unit callSite,
-			Abstraction d2, Abstraction d1);
+	void injectContext(IInfoflowSolver otherSolver, SootMethod callee, Abstraction d3, Unit callSite,
+                       Abstraction d2, Abstraction d1);
 
 	/**
 	 * Cleans up some unused memory. Results will still be available afterwards, but
 	 * no intermediate computation values.
 	 */
-	public void cleanup();
+    void cleanup();
 
 	/**
 	 * Sets a handler that will be called when a followReturnsPastSeeds case
@@ -47,7 +47,7 @@ public interface IInfoflowSolver {
 	 * @param handler The handler to be called when a followReturnsPastSeeds case
 	 *                happens
 	 */
-	public void setFollowReturnsPastSeedsHandler(IFollowReturnsPastSeedsHandler handler);
+    void setFollowReturnsPastSeedsHandler(IFollowReturnsPastSeedsHandler handler);
 
 	/**
 	 * Sets the memory manager that shall be used to manage the abstractions
@@ -55,14 +55,14 @@ public interface IInfoflowSolver {
 	 * @param memoryManager The memory manager that shall be used to manage the
 	 *                      abstractions
 	 */
-	public void setMemoryManager(IMemoryManager<Abstraction, Unit> memoryManager);
+    void setMemoryManager(IMemoryManager<Abstraction, Unit> memoryManager);
 
 	/**
 	 * Gets the memory manager used by this solver to reduce memory consumption
 	 * 
 	 * @return The memory manager registered with this solver
 	 */
-	public IMemoryManager<Abstraction, Unit> getMemoryManager();
+    IMemoryManager<Abstraction, Unit> getMemoryManager();
 
 	/**
 	 * Sets whether abstractions on method returns shall be connected to the
@@ -70,28 +70,28 @@ public interface IInfoflowSolver {
 	 * 
 	 * @param mode The strategy to use for shortening predecessor paths
 	 */
-	public void setPredecessorShorteningMode(PredecessorShorteningMode mode);
+    void setPredecessorShorteningMode(PredecessorShorteningMode mode);
 
 	/**
 	 * Gets the number of edges propagated by the solver
 	 * 
 	 * @return The number of edges propagated by the solver
 	 */
-	public long getPropagationCount();
+    long getPropagationCount();
 
 	/**
 	 * Solves the data flow problem
 	 */
-	public void solve();
+    void solve();
 
-	public void setSolverId(boolean solverId);
+	void setSolverId(boolean solverId);
 
 	/**
 	 * Gets the IFDS problem solved by this solver
 	 * 
 	 * @return The IFDS problem solved by this solver
 	 */
-	public AbstractInfoflowProblem getTabulationProblem();
+    AbstractInfoflowProblem getTabulationProblem();
 
 	/**
 	 * Sets the maximum number of abstractions that shall be recorded per join
@@ -102,7 +102,7 @@ public interface IInfoflowSolver {
 	 *                                 point, or -1 to record an arbitrary number of
 	 *                                 join point abstractions
 	 */
-	public void setMaxJoinPointAbstractions(int maxJoinPointAbstractions);
+    void setMaxJoinPointAbstractions(int maxJoinPointAbstractions);
 
 	/**
 	 * Sets the maximum number of callees that are allowed per call site. If a call
@@ -111,7 +111,7 @@ public interface IInfoflowSolver {
 	 * 
 	 * @param maxCalleesPerCallSite The maximum number of callees per call site
 	 */
-	public void setMaxCalleesPerCallSite(int maxCalleesPerCallSite);
+    void setMaxCalleesPerCallSite(int maxCalleesPerCallSite);
 
 	/**
 	 * Sets the maximum length of a taint propagation path. Abstractions that run
@@ -120,6 +120,6 @@ public interface IInfoflowSolver {
 	 * @param maxAbstractionPathLength The maximum number of abstractions on a
 	 *                                 propagation path
 	 */
-	public void setMaxAbstractionPathLength(int maxAbstractionPathLength);
+    void setMaxAbstractionPathLength(int maxAbstractionPathLength);
 
 }

@@ -37,12 +37,10 @@ public class LazyAliasingStrategy extends AbstractInteractiveAliasStrategy {
 		// Check the full access path for aliasing
 		PointsToSet ptaAP1 = getPointsToSet(ap1);
 		PointsToSet ptaAP2 = getPointsToSet(ap2);
-		if (ptaAP1.hasNonEmptyIntersection(ptaAP2))
-			return true;
+        return ptaAP1.hasNonEmptyIntersection(ptaAP2);
 		
 		// No aliasing found
-		return false;
-	}
+    }
 
 	/**
 	 * Gets the points-to-set for the given access path

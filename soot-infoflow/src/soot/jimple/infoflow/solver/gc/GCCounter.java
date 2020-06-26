@@ -71,11 +71,8 @@ class GCCounter<N, D extends FastSolverLinkedNode<D, N>> {
 		} else if (!callees.equals(other.callees))
 			return false;
 		if (scheduledTasks == null) {
-			if (other.scheduledTasks != null)
-				return false;
-		} else if (!scheduledTasks.equals(other.scheduledTasks))
-			return false;
-		return true;
-	}
+            return other.scheduledTasks == null;
+		} else return scheduledTasks.equals(other.scheduledTasks);
+    }
 
 }

@@ -16,7 +16,7 @@ public interface IMemoryBoundedSolver {
 	 * @author Steven Arzt
 	 *
 	 */
-	public interface IMemoryBoundedSolverStatusNotification {
+    interface IMemoryBoundedSolverStatusNotification {
 
 		/**
 		 * Method that is called when the solver has received its first task
@@ -24,12 +24,12 @@ public interface IMemoryBoundedSolver {
 		 * @param solver
 		 *            The solver that sends the notification
 		 */
-		public void notifySolverStarted(IMemoryBoundedSolver solver);
+        void notifySolverStarted(IMemoryBoundedSolver solver);
 
 		/**
 		 * Method that is called when the solver has finished its last task
 		 */
-		public void notifySolverTerminated(IMemoryBoundedSolver solver);
+        void notifySolverTerminated(IMemoryBoundedSolver solver);
 
 	}
 
@@ -40,7 +40,7 @@ public interface IMemoryBoundedSolver {
 	 * @param reason
 	 *            The reason why the solver is terminated
 	 */
-	public void forceTerminate(ISolverTerminationReason reason);
+    void forceTerminate(ISolverTerminationReason reason);
 
 	/**
 	 * Checks whether this solver is terminated, either by forced termination,

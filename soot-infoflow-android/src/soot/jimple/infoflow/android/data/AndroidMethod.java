@@ -59,7 +59,7 @@ public class AndroidMethod extends SootMethodAndClass {
 	}
 
 	public Set<String> getPermissions() {
-		return this.permissions == null ? Collections.<String>emptySet() : this.permissions;
+		return this.permissions == null ? Collections.emptySet() : this.permissions;
 	}
 
 	public void setSourceSinkType(SourceSinkType sourceSinkType) {
@@ -162,9 +162,7 @@ public class AndroidMethod extends SootMethodAndClass {
 				return false;
 		} else if (!permissions.equals(other.permissions))
 			return false;
-		if (sourceSinkType != other.sourceSinkType)
-			return false;
-		return true;
-	}
+        return sourceSinkType == other.sourceSinkType;
+    }
 
 }

@@ -31,6 +31,15 @@ class XmlConstants {
 		public static final String taintPath = "TaintPath";
 		public static final String pathElement = "PathElement";
 
+		public static final String patterndatas = "PatternDatas";
+		public static final String patterndata = "PatternData";
+		public static final String entrypoints = "entrypoints";
+		public static final String entrypoint = "entrypoint";
+		public static final String shouldCheck = "shouldCheck";
+		public static final String fragments = "fragments";
+		public static final String fragment = "fragment";
+
+
 	}
 
 	class Attributes {
@@ -39,6 +48,8 @@ class XmlConstants {
 		public static final String terminationState = "TerminationState";
 		public static final String statement = "Statement";
 		public static final String method = "Method";
+		public static final String methodbody = "body";
+
 
 		public static final String value = "Value";
 		public static final String type = "Type";
@@ -47,6 +58,21 @@ class XmlConstants {
 		public static final String category = "Category";
 
 		public static final String name = "Name";
+
+		public static final String patterndatatype = "type";
+		public static final String entrypointclass = "class";
+		public static final String entrypointposition = "position";
+
+		public static final String shouldCheck = "shouldCheck";
+		public static final String minSdk = "minSdk";
+		public static final String targetSdk = "targetSdk";
+		public static final String fragmentclasses = "fragmentclasses";
+		public static final String fragmenttype = "type";
+		public static final String fragmentactivityclass = "activityclass";
+
+
+
+
 	}
 
 	class Values {

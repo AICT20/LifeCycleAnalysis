@@ -10,10 +10,14 @@
  ******************************************************************************/
 package soot.jimple.infoflow.sourcesSinks.manager;
 
+import soot.RefType;
+import soot.SootClass;
+import soot.Type;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 
 /**
  * the SourceSinkManager can tell if a statement contains a source or a sink
@@ -24,7 +28,7 @@ public interface ISourceSinkManager {
 	 * Initialization method that is called after the Soot instance has been
 	 * created and before the actual data flow tracking is started.
 	 */
-	public void initialize();
+    void initialize(boolean isIntraComponent);
 
 	/**
 	 * Determines if a method called by the Stmt is a source method or not. If
@@ -37,7 +41,7 @@ public interface ISourceSinkManager {
 	 * @return A SourceInfo object containing additional information if this
 	 *         call is a source, otherwise null
 	 */
-	public SourceInfo getSourceInfo(Stmt sCallSite, InfoflowManager manager);
+    SourceInfo getSourceInfo(Stmt sCallSite, InfoflowManager manager);
 
 	/**
 	 * Checks if the given access path at this statement will leak.
@@ -52,9 +56,16 @@ public interface ISourceSinkManager {
 	 * @return A SinkInfo object containing additional information if this call
 	 *         is a sink, otherwise null
 	 */
-	public SinkInfo getSinkInfo(Stmt sCallSite, InfoflowManager manager, AccessPath ap);
+    SinkInfo getSinkInfo(Stmt sCallSite, InfoflowManager manager, AccessPath ap);
 
 
-	public void updateSinkInfoWithICFG(IInfoflowCFG icfg);
-	public SinkInfo getSPSinkInfo(Stmt returnSite, InfoflowManager manager, String tag);
+	void updateSinkInfoWithICFG(IInfoflowCFG icfg, boolean isIntraComponent);
+	SinkInfo getSPSinkInfo(Stmt returnSite, InfoflowManager manager, String tag);
+
+	//lifecycle-add 我们自行添加，用于判断当前的kill和source是否对应
+    boolean isKillStmt(String killMethodSig);//这条勇来加速的
+	boolean shouldKillCurrentSource(String killMethodSig, SourceSinkDefinition sourceDef);
+	boolean canBeLeakObjects(Type currentType, SourceSinkDefinition def);
+
+
 }

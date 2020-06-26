@@ -139,11 +139,8 @@ public class FieldSourceSinkDefinition extends SourceSinkDefinition {
 		} else if (!accessPaths.equals(other.accessPaths))
 			return false;
 		if (fieldSignature == null) {
-			if (other.fieldSignature != null)
-				return false;
-		} else if (!fieldSignature.equals(other.fieldSignature))
-			return false;
-		return true;
-	}
+            return other.fieldSignature == null;
+		} else return fieldSignature.equals(other.fieldSignature);
+    }
 
 }

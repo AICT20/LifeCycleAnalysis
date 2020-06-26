@@ -78,8 +78,7 @@ public class ResultSourceInfo extends AbstractResultSourceSinkInfo {
 		if (!InfoflowConfiguration.getPathAgnosticResults()) {
 			if (!Arrays.equals(path, other.path))
 				return false;
-			if (!Arrays.equals(pathAPs, other.pathAPs))
-				return false;
+            return Arrays.equals(pathAPs, other.pathAPs);
 		}
 		return true;
 	}

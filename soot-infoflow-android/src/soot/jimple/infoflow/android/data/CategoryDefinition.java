@@ -10,7 +10,7 @@ import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkCategory;
  */
 public class CategoryDefinition implements ISourceSinkCategory {
 
-	public static enum CATEGORY {
+	public enum CATEGORY {
 		// all categories
 		ALL,
 
@@ -155,10 +155,8 @@ public class CategoryDefinition implements ISourceSinkCategory {
 				return false;
 		} else if (!customDescription.equals(other.customDescription))
 			return false;
-		if (systemCategory != other.systemCategory)
-			return false;
-		return true;
-	}
+        return systemCategory == other.systemCategory;
+    }
 
 	@Override
 	public String toString() {

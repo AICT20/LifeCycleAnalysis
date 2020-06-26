@@ -12,15 +12,7 @@ package soot.jimple.infoflow.android.source;
 
 import static soot.SootClass.DANGLING;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,13 +22,7 @@ import com.google.common.cache.LoadingCache;
 
 import heros.solver.IDESolver;
 import heros.solver.Pair;
-import soot.Local;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootField;
-import soot.SootMethod;
-import soot.Unit;
-import soot.VoidType;
+import soot.*;
 import soot.jimple.AssignStmt;
 import soot.jimple.DefinitionStmt;
 import soot.jimple.FieldRef;
@@ -63,6 +49,8 @@ import soot.jimple.infoflow.android.resources.controls.AndroidLayoutControl;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.AccessPath.ArrayTaintType;
 import soot.jimple.infoflow.data.SootMethodAndClass;
+import soot.jimple.infoflow.pattern.patterntag.LCExitFinishTag;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.sourcesSinks.definitions.*;
 import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition.CallType;
@@ -178,9 +166,9 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 	 * @param config
 	 *            The configuration of the data flow analyzer
 	 */
-	public AndroidSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks,
+	public AndroidSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks, Map<ISourceSinkCategory, ResourceLeakGroup> leakGroups,
 									InfoflowAndroidConfiguration config) {
-		this(sources, sinks, Collections.<CallbackDefinition>emptySet(), config, null);
+		this(sources, sinks, leakGroups, Collections.<CallbackDefinition>emptySet(), config, null);
 	}
 
 	/**
@@ -195,18 +183,13 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 	 * @param callbackMethods
 	 *            The list of callback methods whose parameters are sources through
 	 *            which the application receives data from the operating system
-	 * @param weakMatching
-	 *            True for weak matching: If an entry in the list has no return
-	 *            type, it matches arbitrary return types if the rest of the method
-	 *            signature is compatible. False for strong matching: The method
-	 *            signature in the code exactly match the one in the list.
 	 * @param config
 	 *            The configuration of the data flow analyzer
 	 * @param layoutControls
 	 *            A map from reference identifiers to the respective Android layout
 	 *            controls
 	 */
-	public AndroidSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks,
+	public AndroidSourceSinkManager(Set<SourceSinkDefinition> sources, Set<SourceSinkDefinition> sinks, Map<ISourceSinkCategory, ResourceLeakGroup> leakgroup,
 									Set<CallbackDefinition> callbackMethods, InfoflowAndroidConfiguration config,
 									Map<Integer, AndroidLayoutControl> layoutControls) {
 		this.sourceSinkConfig = config.getSourceSinkConfig();
@@ -226,6 +209,29 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 		this.layoutControls = layoutControls;
 
 		this.exitSPMap = new HashMap<>();
+
+		this.leakGroups = new HashMap<>(leakgroup);
+		//更新一下killmap
+		this.killMap = new HashMap<>();
+		for (ISourceSinkCategory category : this.leakGroups.keySet()) {
+			ResourceLeakGroup group = this.leakGroups.get(category);
+			for (String killsig : group.getKillSigs()) {
+				this.killMap.put(killsig, category);
+			}
+		}
+		//初始化一下leakObjects
+		this.leakObjects = new HashMap<>();
+		for (ISourceSinkCategory category : this.leakGroups.keySet()) {
+			ResourceLeakGroup group = this.leakGroups.get(category);
+			Set<SootClass> ojectClasses = new HashSet<>();
+			leakObjects.put(category, ojectClasses);
+			for (String objectstr : group.getObjStrs()) {
+				SootClass nowClass = Scene.v().getSootClass(objectstr);
+				if (null != nowClass) {
+					ojectClasses.add(nowClass);
+				}
+			}
+		}
 
 		logger.info(String.format("Created a SourceSinkManager with %d sources, %d sinks, and %d callback methods.",
 				this.sourceDefs.size(), this.sinkDefs.size(), this.callbackMethods.size()));
@@ -416,6 +422,78 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 		return null;
 	}
 
+	//lifecycle-add
+	protected Map<ISourceSinkCategory, ResourceLeakGroup> leakGroups = null;
+	protected Map<ISourceSinkCategory, Set<SootClass>> leakObjects = null;
+	public Map<String, ISourceSinkCategory> killMap = null;
+	public boolean isKillStmt(String killMethodSig){
+		return killMap.containsKey(killMethodSig);
+	}
+	@Override
+	public boolean shouldKillCurrentSource(String killMethodSig, SourceSinkDefinition givendef) {
+		ISourceSinkCategory killcategory = killMap.get(killMethodSig);
+		if (null == killcategory) {
+			return false;
+		}
+		if (!killcategory.equals(givendef.getCategory()))
+			return false;
+		return true;
+	}
+	public boolean canBeLeakObjects(Type currentType, SourceSinkDefinition def) {
+		if (null == currentType || !(currentType instanceof  RefType)) {
+			return false;
+		}
+		RefType currentRefType = (RefType)currentType;
+		SootClass currentClass = currentRefType.getSootClass();
+		if (null == currentClass) {
+			return false;
+		}
+		Set<SootClass> cateClasses = leakObjects.get(def.getCategory());
+		if (null == cateClasses || cateClasses.isEmpty()) {
+			return false;
+		}
+		if (cateClasses.contains(currentClass)) {
+			return true;
+		}
+		//获取当前class所有的super class和interfaces
+		Stack<SootClass> allSuperClassesAndInterfaces = new Stack<>();
+		allSuperClassesAndInterfaces.add(currentClass);
+		allSuperClassesAndInterfaces.addAll(currentClass.getInterfaces());
+
+		Set<SootClass> s = new HashSet<>();
+		while (!allSuperClassesAndInterfaces.isEmpty()) {
+			SootClass c = allSuperClassesAndInterfaces.pop();
+			s.add(c);
+			if (c.hasSuperclass()) {
+				SootClass temp = c.getSuperclass();
+				if (!temp.getName().equals("java.lang.Object") && !s.contains(temp)) {
+					allSuperClassesAndInterfaces.push(temp);
+				}
+			}
+			for (SootClass interfaces : c.getInterfaces()) {
+				if (!s.contains(interfaces)) {
+					allSuperClassesAndInterfaces.push(interfaces);
+				}
+			}
+		}
+
+		Iterator<SootClass> it = cateClasses.iterator();
+
+		while(it.hasNext()) {
+			SootClass nowCheckClass = it.next();
+			if (s.contains(nowCheckClass)) {
+				cateClasses.add(currentClass);
+				return true;
+			}
+//			if (Scene.v().getActiveHierarchy().isClassSubclassOf(currentClass, nowCheckClass)) {
+//				cateClasses.add(currentClass);
+//				return true;
+//			}
+		}
+
+		return false;
+	}
+
 	@Override
 	public SourceInfo getSourceInfo(Stmt sCallSite, InfoflowManager manager) {
 		// Do not look for sources in excluded methods
@@ -452,6 +530,14 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 			return new SourceInfo(def, manager.getAccessPathFactory().createAccessPath(defStmt.getLeftOp(), null, null,
 					null, true, false, true, ArrayTaintType.ContentsAndLength, false));
 		} else if (iexpr instanceof InstanceInvokeExpr && iexpr.getMethod().getReturnType() == VoidType.v()) {
+			InstanceInvokeExpr iinv = (InstanceInvokeExpr) sCallSite.getInvokeExpr();
+			return new SourceInfo(def, manager.getAccessPathFactory().createAccessPath(iinv.getBase(), true));
+			//再加一条，只要method没有返回，那就taint base
+		} else if (iexpr instanceof InstanceInvokeExpr && !(sCallSite instanceof  DefinitionStmt)) {
+			InstanceInvokeExpr iinv = (InstanceInvokeExpr) sCallSite.getInvokeExpr();
+			return new SourceInfo(def, manager.getAccessPathFactory().createAccessPath(iinv.getBase(), true));
+			//再加一条，如果返回值是基础类型，如int, long, boolean等等，那就taint base
+		} else if (iexpr instanceof InstanceInvokeExpr && iexpr.getMethod().getReturnType() instanceof PrimType) {
 			InstanceInvokeExpr iinv = (InstanceInvokeExpr) sCallSite.getInvokeExpr();
 			return new SourceInfo(def, manager.getAccessPathFactory().createAccessPath(iinv.getBase(), true));
 		} else
@@ -984,7 +1070,7 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 	}
 
 	@Override
-	public void initialize() {
+	public void initialize(boolean isIntraComponent) {
 		// Get the Soot method or field for the source signatures we have
 		if (sourceDefs != null) {
 			sourceMethods = new HashMap<>();
@@ -1099,18 +1185,28 @@ public class AndroidSourceSinkManager implements ISourceSinkManager, IOneSourceA
 
 	//lifecycle-add，把每个ICFG的最后一句当作sink->这里实际是把最开始的dummyMainMethod的return当作sink，应该不影响结果但是效率会比较慢
 	//或许我们可以把dummyMainMethod中每个component的子dummyMainMethod的return当作sink，这样不会跨component进行传播，因此效率会高一些
-	public void updateSinkInfoWithICFG(IInfoflowCFG icfg) {
+	public void updateSinkInfoWithICFG(IInfoflowCFG icfg, boolean isIntraComponent) {
 		if (null == sinkStatements) {
 			sinkStatements = new HashMap<>();
 		}
-		List<SootMethod> entries = Scene.v().getEntryPoints();
-		for (SootMethod currentMainMethod : entries) {
-			Collection<Unit> endpoints = icfg.getEndPointsOf(currentMainMethod);
-			for (Unit u : endpoints) {
-				if (u instanceof Stmt) {
+		if (isIntraComponent) {
+			Set<Unit> us = icfg.allNonCallStartNodes();
+			for (Unit u : us) {
+				if (u.hasTag(LCExitFinishTag.TAG_NAME)) {
 					Stmt s = (Stmt)u;
-					if (null == sinkStatements.get(s)) {
-						sinkStatements.put(s, new ExitSourceSinkDefinition(s));
+					sinkStatements.put(s, new ExitSourceSinkDefinition(s));
+				}
+			}
+		} else {
+			List<SootMethod> entries = Scene.v().getEntryPoints();
+			for (SootMethod currentMainMethod : entries) {
+				Collection<Unit> endpoints = icfg.getEndPointsOf(currentMainMethod);
+				for (Unit u : endpoints) {
+					if (u instanceof Stmt) {
+						Stmt s = (Stmt)u;
+						if (null == sinkStatements.get(s)) {
+							sinkStatements.put(s, new ExitSourceSinkDefinition(s));
+						}
 					}
 				}
 			}

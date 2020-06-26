@@ -768,9 +768,7 @@ public class FlowInsensitiveSolver<N extends Unit, D extends FastSolverLinkedNod
 					return false;
 			} else if (!edge.equals(other.edge))
 				return false;
-			if (this.solverId != other.solverId)
-				return false;
-			return true;
+			return this.solverId == other.solverId;
 		}
 
 		@Override

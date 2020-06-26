@@ -14,8 +14,10 @@ import java.util.*;
 
 import gnu.trove.set.hash.TCustomHashSet;
 import gnu.trove.strategy.HashingStrategy;
+import heros.solver.Pair;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.IfStmt;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.collect.AtomicBitSet;
@@ -49,6 +51,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected SourceContext sourceContext = null;
 	//lifecycle-add
 	protected Set<Stmt> killStmts = null;
+	protected Set<Pair<IfStmt, Boolean>> ifkillStmts = null;
 	protected boolean isfinishing = false;
 	/**
 	 * Unit/Stmt which activates the taint when the abstraction passes it
@@ -137,6 +140,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 					return false;
 				}
 			}
+			if (abs1.ifkillStmts == null || abs1.ifkillStmts.isEmpty()) {
+				if (abs2.ifkillStmts != null && !abs2.ifkillStmts.isEmpty())
+					return false;
+			} else if (abs2.ifkillStmts != null && !abs2.ifkillStmts.isEmpty()) {
+				if (!MyOwnUtils.setCompare(abs1.ifkillStmts, abs2.ifkillStmts)) {
+					return false;
+				}
+			}
 
 			return abs1.localEquals(abs2);
 		}
@@ -155,6 +166,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		this.activationUnit = null;
 		this.exceptionThrown = exceptionThrown;
 		this.killStmts = null;
+		this.ifkillStmts = null;
 		this.neighbors = null;
 		this.isImplicit = isImplicit;
 		this.currentStmt = sourceContext == null ? null : sourceContext.getStmt();
@@ -180,6 +192,9 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			isfinishing = original.isfinishing;
 			if (null != original.killStmts) {
 				killStmts = new HashSet<>(original.killStmts);
+			}
+			if (null != original.ifkillStmts) {
+				ifkillStmts = new HashSet<>(original.ifkillStmts);
 			}
 			assert activationUnit == null || flowSensitiveAliasing;
 
@@ -236,6 +251,20 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			abs.killStmts = new HashSet<>();
 		}
 		abs.killStmts.add(killStmt);
+		return abs;
+	}
+
+	public Abstraction deriveNewAbstractionOnIfKill(IfStmt killStmt, boolean isjump) {
+		if (null != this.ifkillStmts && this.ifkillStmts.contains(new Pair<>(killStmt, isjump))) {
+			return this;
+		}
+		Abstraction abs = clone();
+		abs.currentStmt = killStmt;
+		abs.sourceContext = null;
+		if (null == abs.ifkillStmts) {
+			abs.ifkillStmts = new HashSet<>();
+		}
+		abs.ifkillStmts.add(new Pair<>(killStmt, isjump));
 		return abs;
 	}
 
@@ -375,9 +404,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		return this.killStmts;
 	}
 
+	public Set<Pair<IfStmt, Boolean>> getIfKillStmts() {
+		return this.ifkillStmts;
+	}
+
 	public Abstraction getActiveCopy() {
 		if (this.isAbstractionActive())
 			return this;
+
 
 		Abstraction a = clone();
 		a.sourceContext = null;
@@ -495,6 +529,14 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 				return false;
 			}
 		}
+		if (ifkillStmts == null || ifkillStmts.isEmpty()) {
+			if (other.ifkillStmts != null && !other.ifkillStmts.isEmpty())
+				return false;
+		} else if (other.ifkillStmts != null && ! other.ifkillStmts.isEmpty()) {
+			if (!MyOwnUtils.setCompare(ifkillStmts, other.ifkillStmts)) {
+				return false;
+			}
+		}
 		return localEquals(other);
 	}
 
@@ -529,10 +571,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 //			return false;
 		if (this.isImplicit != other.isImplicit)
 			return false;
-		if (this.isfinishing != other.isfinishing) {
-			return false;
-		}
-		return true;
+		return this.isfinishing == other.isfinishing;
 	}
 
 	@Override
@@ -560,7 +599,13 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			}
 			result = prime * result + killhash;
 		}
-
+		if (null != ifkillStmts && !ifkillStmts.isEmpty()) {
+			int killhash = 0;
+			for (Pair<IfStmt, Boolean> s : ifkillStmts) {
+				killhash += s.hashCode();
+			}
+			result = prime * result + killhash;
+		}
 
 		this.hashCode = result;
 
@@ -616,6 +661,13 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		if (originalAbstraction == this)
 			return false;
 
+		//lifecycle-test
+//		if (null != this.getCorrespondingCallSite() && this.getCorrespondingCallSite().toString().contains("onReceive")) {
+//			if (null != originalAbstraction.getCorrespondingCallSite() && originalAbstraction.getCorrespondingCallSite().toString().contains("UnregisterReceiver: void <init>")) {
+//				System.out.println();
+//			}
+//		}
+
 		// We should not add identical nodes as neighbors
 		if (this.predecessor == originalAbstraction.predecessor && this.currentStmt == originalAbstraction.currentStmt)
 			return false;
@@ -637,14 +689,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			}
 			return this.neighbors.add(originalAbstraction);
 		}
-	}
-
-	@Override
-	public boolean removeNeighbor(Abstraction originalAbstraction) {
-		if (neighbors == null) {
-			return true;
-		}
-		return neighbors.remove(originalAbstraction);
 	}
 
 	public void setCorrespondingCallSite(Stmt callSite) {

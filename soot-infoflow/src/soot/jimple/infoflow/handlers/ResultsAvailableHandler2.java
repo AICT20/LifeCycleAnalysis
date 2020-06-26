@@ -18,7 +18,7 @@ public interface ResultsAvailableHandler2 extends ResultsAvailableHandler {
 	 * @param sinks The sink at which the data flow ended
 	 * @return True if the data flow analysis shall continue, otherwise false
 	 */
-	public boolean onSingleResultAvailable(ResultSourceInfo source,
-			ResultSinkInfo sinks);
+    boolean onSingleResultAvailable(ResultSourceInfo source,
+                                    ResultSinkInfo sinks);
 
 }

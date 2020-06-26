@@ -12,11 +12,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 import heros.solver.IDESolver;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootField;
-import soot.SootMethod;
-import soot.Value;
+import soot.*;
 import soot.jimple.DefinitionStmt;
 import soot.jimple.ParameterRef;
 import soot.jimple.ReturnStmt;
@@ -27,6 +23,7 @@ import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.methodSummary.data.factory.SourceSinkFactory;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
+import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 import soot.jimple.infoflow.sourcesSinks.manager.SinkInfo;
 import soot.jimple.infoflow.sourcesSinks.manager.SourceInfo;
@@ -160,7 +157,7 @@ public class SummarySourceSinkManager implements ISourceSinkManager {
 	}
 
 	@Override
-	public void updateSinkInfoWithICFG(IInfoflowCFG icfg) {
+	public void updateSinkInfoWithICFG(IInfoflowCFG icfg, boolean isIntraComponent) {
 
 	}
 
@@ -169,8 +166,19 @@ public class SummarySourceSinkManager implements ISourceSinkManager {
 		return null;
 	}
 
+	public boolean isKillStmt(String killMethodSig){
+		return false;
+	}
+	public boolean canBeLeakObjects(Type currentType, SourceSinkDefinition def) {
+		return false;
+	}
 	@Override
-	public void initialize() {
+	public boolean shouldKillCurrentSource(String killMethodSig, SourceSinkDefinition sourceDef) {
+		return false;
+	}
+
+	@Override
+	public void initialize(boolean isIntraComponent) {
 		// nothing to do heres
 	}
 

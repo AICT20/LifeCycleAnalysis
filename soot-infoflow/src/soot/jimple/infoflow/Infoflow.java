@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import soot.*;
+import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration.AccessPathConfiguration;
 import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
@@ -68,6 +69,7 @@ import soot.jimple.infoflow.problems.TaintPropagationResults;
 import soot.jimple.infoflow.problems.TaintPropagationResults.OnTaintPropagationResultAdded;
 import soot.jimple.infoflow.problems.rules.DefaultPropagationRuleManagerFactory;
 import soot.jimple.infoflow.problems.rules.IPropagationRuleManagerFactory;
+import soot.jimple.infoflow.resourceleak.ResourceLeakOptimizer;
 import soot.jimple.infoflow.results.InfoflowPerformanceData;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.results.ResultSinkInfo;
@@ -275,7 +277,7 @@ public class Infoflow extends AbstractInfoflow {
 
 			// Initialize the source sink manager
 			if (sourcesSinks != null)
-				sourcesSinks.initialize();
+				sourcesSinks.initialize(config.isLCIntraComponent());
 
 			// Perform constant propagation and remove dead code
 			if (config.getCodeEliminationMode() != CodeEliminationMode.NoCodeElimination) {
@@ -305,8 +307,12 @@ public class Infoflow extends AbstractInfoflow {
 			IInfoflowCFG iCfg = icfgFactory.buildBiDirICFG(config.getCallgraphAlgorithm(),
 					config.getEnableExceptionTracking());
 			//lifecycle-add
-			sourcesSinks.updateSinkInfoWithICFG(iCfg);
+			sourcesSinks.updateSinkInfoWithICFG(iCfg, config.isLCIntraComponent());
 			TaintPropagationResults.initLCResults();
+			if (true) {
+				ResourceLeakOptimizer.v().initKillingMethods(sourcesSinks);
+				ResourceLeakOptimizer.v().jumpIntoMethodsOptimization(iCfg, getMethodsForSeeds(iCfg));
+			}
 			//lifecycle-add 测试用
 //			SootClass testclass = Scene.v().getSootClass("android.database.sqlite.SQLiteOpenHelper");
 //			for (SootMethod m : testclass.getMethods()) {
@@ -690,7 +696,7 @@ public class Infoflow extends AbstractInfoflow {
 				// Make sure that we are in a sensible state even if we ran out
 				// of memory before
 				Runtime.getRuntime().gc();
-				performanceData.updateMaxMemoryConsumption((int) getUsedMemory());
+				performanceData.updateMaxMemoryConsumption(getUsedMemory());
 				performanceData.setPathReconstructionSeconds(
 						(int) Math.round((System.nanoTime() - beforePathReconstruction) / 1E9));
 
@@ -1101,10 +1107,7 @@ public class Infoflow extends AbstractInfoflow {
 			return false;
 
 		// Exclude library classes
-		if (config.getExcludeSootLibraryClasses() && sm.getDeclaringClass().isLibraryClass())
-			return false;
-
-		return true;
+		return !config.getExcludeSootLibraryClasses() || !sm.getDeclaringClass().isLibraryClass();
 	}
 
 	/**
@@ -1137,18 +1140,19 @@ public class Infoflow extends AbstractInfoflow {
 			PatchingChain<Unit> units = m.getActiveBody().getUnits();
 			for (Unit u : units) {
 				Stmt s = (Stmt) u;
+//				if (s.containsInvokeExpr()) {
+//					InvokeExpr exp = s.getInvokeExpr();
+//					String signature = exp.getMethod().getSignature();
+//					if (signature.contains("Socket")) {
+//						System.out.println();
+//					}
+//				}
 
 				if (sourcesSinks.getSourceInfo(s, manager) != null) {
-					//lifecycle-add 这里是临时测试的
-					if (s.containsInvokeExpr()) {
-						if (s.getInvokeExpr().getMethod().getName().contains("init")
-								&& m.getName().contains("onCreate") && m.getDeclaringClass().getName().contains("AskPushPermission")){
-							forwardProblem.addInitialSeeds(u, Collections.singleton(forwardProblem.zeroValue()));
-							if (getConfig().getLogSourcesAndSinks())
-								collectedSources.add(s);
-							logger.debug("Source found: {}", u);
-						}
-					}
+					forwardProblem.addInitialSeeds(u, Collections.singleton(forwardProblem.zeroValue()));
+					if (getConfig().getLogSourcesAndSinks())
+						collectedSources.add(s);
+					logger.debug("Source found: {}", u);
 				}
 				if (sourcesSinks.getSinkInfo(s, manager, null) != null) {
 					sinkCount++;
@@ -1169,10 +1173,7 @@ public class Infoflow extends AbstractInfoflow {
 
 	@Override
 	public boolean isResultAvailable() {
-		if (results == null) {
-			return false;
-		}
-		return true;
+		return results != null;
 	}
 
 	@Override

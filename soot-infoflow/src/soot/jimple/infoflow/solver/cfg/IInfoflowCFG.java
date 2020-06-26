@@ -23,7 +23,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 *
 	 * @author Steven Arzt
 	 */
-	public static class UnitContainer {
+    class UnitContainer {
 
 		private final Unit unit;
 		private final SootMethod method;
@@ -89,7 +89,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 *            The unit for which to get the postdominator.
 	 * @return The postdominator of the given unit
 	 */
-	public UnitContainer getPostdominatorOf(Unit u);
+    UnitContainer getPostdominatorOf(Unit u);
 
 	/**
 	 * Checks whether the given static field is read inside the given method or one
@@ -102,7 +102,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given static field is read inside the given method,
 	 *         otherwise false
 	 */
-	public boolean isStaticFieldRead(SootMethod method, SootField variable);
+    boolean isStaticFieldRead(SootMethod method, SootField variable);
 
 	/**
 	 * Checks whether the given static field is used (read or written) inside the
@@ -115,7 +115,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given static field is used inside the given method,
 	 *         otherwise false
 	 */
-	public boolean isStaticFieldUsed(SootMethod method, SootField variable);
+    boolean isStaticFieldUsed(SootMethod method, SootField variable);
 
 	/**
 	 * Checks whether the given method or any of its transitive callees has side
@@ -126,7 +126,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given method or one of its transitive callees has side
 	 *         effects, otherwise false
 	 */
-	public boolean hasSideEffects(SootMethod method);
+    boolean hasSideEffects(SootMethod method);
 
 	/**
 	 * Re-initializes the mapping betwween statements and owning methods after a
@@ -135,7 +135,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @param m
 	 *            The method for which to re-initialize the mapping
 	 */
-	public void notifyMethodChanged(SootMethod m);
+    void notifyMethodChanged(SootMethod m);
 
 	/**
 	 * Checks whether the given method reads the given value
@@ -146,7 +146,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 *            The value to check
 	 * @return True if the given method reads the given value, otherwise false
 	 */
-	public boolean methodReadsValue(SootMethod m, Value v);
+    boolean methodReadsValue(SootMethod m, Value v);
 
 	/**
 	 * Checks whether the given method writes the given value
@@ -157,7 +157,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 *            The value to check
 	 * @return True if the given method writes the given value, otherwise false
 	 */
-	public boolean methodWritesValue(SootMethod m, Value v);
+    boolean methodWritesValue(SootMethod m, Value v);
 
 	/**
 	 * Gets whether the two given units are connected by an exceptional control flow
@@ -170,7 +170,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the two given units are directly connected by an exceptional
 	 *         control flow edge, otherwise false
 	 */
-	public boolean isExceptionalEdgeBetween(Unit u1, Unit u2);
+    boolean isExceptionalEdgeBetween(Unit u1, Unit u2);
 
 	/**
 	 * Gets all ordinary callees of the call at call site u, i.e., those that are
@@ -180,7 +180,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 *            The call site
 	 * @return The set of ordinary callees of the given call site
 	 */
-	public Collection<SootMethod> getOrdinaryCalleesOfCallAt(Unit u);
+    Collection<SootMethod> getOrdinaryCalleesOfCallAt(Unit u);
 
 	/**
 	 * Checks whether the given call is a call to Executor.execute() or
@@ -194,7 +194,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given invocation expression and callee are a valid call
 	 *         to Executor.execute() or AccessController.doPrivileged()
 	 */
-	public boolean isExecutorExecute(InvokeExpr ie, SootMethod dest);
+    boolean isExecutorExecute(InvokeExpr ie, SootMethod dest);
 
 	/**
 	 * Checks whether the given call site is a reflective method call
@@ -204,7 +204,7 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given call site contains a reflective method call,
 	 *         otherwise false
 	 */
-	public boolean isReflectiveCallSite(Unit u);
+    boolean isReflectiveCallSite(Unit u);
 
 	/**
 	 * Checks whether the given call site is a reflective method call
@@ -214,12 +214,12 @@ public interface IInfoflowCFG extends BiDiInterproceduralCFG<Unit, SootMethod> {
 	 * @return True if the given call site contains a reflective method call,
 	 *         otherwise false
 	 */
-	public boolean isReflectiveCallSite(InvokeExpr iexpr);
+    boolean isReflectiveCallSite(InvokeExpr iexpr);
 
 	/**
 	 * Clears all caches and temporary data from memory. This method has no effect
 	 * on the functional behavior of the class.
 	 */
-	public void purge();
+    void purge();
 
 }

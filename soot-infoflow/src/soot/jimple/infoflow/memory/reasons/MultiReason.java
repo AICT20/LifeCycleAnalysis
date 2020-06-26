@@ -59,12 +59,9 @@ public class MultiReason implements ISolverTerminationReason, Cloneable {
 			return false;
 		MultiReason other = (MultiReason) obj;
 		if (reasons == null) {
-			if (other.reasons != null)
-				return false;
-		} else if (!reasons.equals(other.reasons))
-			return false;
-		return true;
-	}
+            return other.reasons == null;
+		} else return reasons.equals(other.reasons);
+    }
 
 	@Override
 	public ISolverTerminationReason combine(ISolverTerminationReason terminationReason) {

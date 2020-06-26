@@ -66,10 +66,8 @@ public class TimeoutReason implements ISolverTerminationReason {
 		TimeoutReason other = (TimeoutReason) obj;
 		if (timeElapsed != other.timeElapsed)
 			return false;
-		if (timeout != other.timeout)
-			return false;
-		return true;
-	}
+        return timeout == other.timeout;
+    }
 
 	@Override
 	public ISolverTerminationReason combine(ISolverTerminationReason terminationReason) {

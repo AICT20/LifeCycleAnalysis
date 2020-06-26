@@ -116,8 +116,7 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 
 		// Is the base object tainted?
 		if (!found && iexpr instanceof InstanceInvokeExpr) {
-			if (((InstanceInvokeExpr) iexpr).getBase() == source.getAccessPath().getPlainValue())
-				return true;
+            return ((InstanceInvokeExpr) iexpr).getBase() == source.getAccessPath().getPlainValue();
 		}
 
 		return false;
@@ -153,6 +152,11 @@ public class SinkPropagationRule extends AbstractTaintPropagationRule {
 				killAll.value = true;
 				return null;
 			} else {
+				//如果是intracomponent的话，传递不能超过component的最后一句，而这最后一句就是这个情况下的sink点
+				if (getManager().getConfig().isLCIntraComponent()) {
+					killAll.value = true;
+					return null;
+				}
 //						System.out.println();
 			}
 		}

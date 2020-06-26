@@ -41,6 +41,6 @@ public interface IReversibleTaintWrapper extends ITaintPropagationWrapper {
 	 * @return The list of possibly tainted values before the invocation statement
 	 *         referenced in {@link Stmt} has been executed
 	 */
-	public Set<Abstraction> getInverseTaintsForMethod(Stmt stmt, Abstraction d1, Abstraction taintedPath);
+    Set<Abstraction> getInverseTaintsForMethod(Stmt stmt, Abstraction d1, Abstraction taintedPath);
 
 }

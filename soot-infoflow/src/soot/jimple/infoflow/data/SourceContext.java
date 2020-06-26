@@ -88,12 +88,9 @@ public class SourceContext implements Cloneable {
 		} else if (!accessPath.equals(other.accessPath))
 			return false;
 		if (userData == null) {
-			if (other.userData != null)
-				return false;
-		} else if (!userData.equals(other.userData))
-			return false;
-		return true;
-	}
+            return other.userData == null;
+		} else return userData.equals(other.userData);
+    }
 
 	@Override
 	public SourceContext clone() {

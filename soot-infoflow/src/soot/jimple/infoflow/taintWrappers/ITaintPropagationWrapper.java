@@ -40,7 +40,7 @@ public interface ITaintPropagationWrapper {
 	 * @param manager The manager object providing access to the data flow solver processing
 	 * the IFDS edges and the interprocedural control flow graph
 	 */
-	public void initialize(InfoflowManager manager);
+    void initialize(InfoflowManager manager);
 	
 	/**
 	 * Checks an invocation statement for black-box taint propagation. This allows
@@ -53,8 +53,8 @@ public interface ITaintPropagationWrapper {
 	 * @return The list of tainted values after the invocation statement referenced in {@link Stmt}
 	 * has been executed
 	 */
-	public Set<Abstraction> getTaintsForMethod(Stmt stmt, Abstraction d1, 
-			Abstraction taintedPath);
+    Set<Abstraction> getTaintsForMethod(Stmt stmt, Abstraction d1,
+                                        Abstraction taintedPath);
 	
 	/**
 	 * Gets whether the taints produced by this taint wrapper are exclusive, i.e. there are
@@ -64,7 +64,7 @@ public interface ITaintPropagationWrapper {
 	 * @param taintedPath The tainted field or value to propagate 
 	 * @return True if this taint wrapper is exclusive, otherwise false. 
 	 */
-	public boolean isExclusive(Stmt stmt, Abstraction taintedPath);
+    boolean isExclusive(Stmt stmt, Abstraction taintedPath);
 	
 	/**
 	 * Gets the aliases that a summarized method generates for the given
@@ -77,8 +77,8 @@ public interface ITaintPropagationWrapper {
 	 * @return The set of aliases for the given abstraction or null if no such
 	 * aliases exist
 	 */
-	public Set<Abstraction> getAliasesForMethod(Stmt stmt, Abstraction d1,
-			Abstraction taintedPath);
+    Set<Abstraction> getAliasesForMethod(Stmt stmt, Abstraction d1,
+                                         Abstraction taintedPath);
 	
 	/**
 	 * Checks whether this taint wrapper can in general produce artificial taints
@@ -88,7 +88,7 @@ public interface ITaintPropagationWrapper {
 	 * @return True if this taint wrapper can in general produce taints for the
 	 * given method.
 	 */
-	public boolean supportsCallee(SootMethod method);
+    boolean supportsCallee(SootMethod method);
 	
 	/**
 	 * Checks whether this taint wrapper can in general produce artificial taints
@@ -98,7 +98,7 @@ public interface ITaintPropagationWrapper {
 	 * @return True if this taint wrapper can in general produce taints for the
 	 * given call site.
 	 */
-	public boolean supportsCallee(Stmt callSite);
+    boolean supportsCallee(Stmt callSite);
 	
 	/**
 	 * Gets the number of times in which the taint wrapper was able to
@@ -106,7 +106,7 @@ public interface ITaintPropagationWrapper {
 	 * isExclusive() returned true.
 	 * @return The number of method model requests that succeeded
 	 */
-	public int getWrapperHits();
+    int getWrapperHits();
 	
 	/**
 	 * Gets the number of times in which the taint wrapper was NOT able to
@@ -114,6 +114,6 @@ public interface ITaintPropagationWrapper {
 	 * isExclusive() returned false.
 	 * @return The number of method model requests that failed
 	 */
-	public int getWrapperMisses();
+    int getWrapperMisses();
 
 }

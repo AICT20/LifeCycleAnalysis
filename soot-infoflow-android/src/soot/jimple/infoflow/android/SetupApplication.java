@@ -89,12 +89,14 @@ import soot.jimple.infoflow.memory.FlowDroidMemoryWatcher;
 import soot.jimple.infoflow.memory.FlowDroidTimeoutWatcher;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
 import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
 import soot.jimple.infoflow.results.InfoflowPerformanceData;
 import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.infoflow.rifl.RIFLSourceSinkDefinitionProvider;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.solver.memory.IMemoryManager;
 import soot.jimple.infoflow.solver.memory.IMemoryManagerFactory;
+import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkCategory;
 import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
 import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
@@ -524,7 +526,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 */
 	protected ISourceSinkManager createSourceSinkManager(LayoutFileParser lfp, Set<CallbackDefinition> callbacks) {
 		AccessPathBasedSourceSinkManager sourceSinkManager = new AccessPathBasedSourceSinkManager(
-				this.sourceSinkProvider.getSources(), this.sourceSinkProvider.getSinks(), callbacks, config,
+				this.sourceSinkProvider.getSources(), this.sourceSinkProvider.getSinks(), this.sourceSinkProvider.getLeakGroups(), callbacks, config,
 				lfp == null ? null : lfp.getUserControlsByID());
 
 		sourceSinkManager.setAppPackageName(this.manifest.getPackageName());
@@ -934,8 +936,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * scans the code including unreachable methods.
 	 * 
 	 * @param lfp        The layout file parser to be used for analyzing UI controls
-	 * @param entryPoint The entry point for which to calculate the callbacks. Pass
-	 *                   null to calculate callbacks for all entry points.
+
 	 * @throws IOException Thrown if a required configuration cannot be read
 	 */
 	private void calculateCallbackMethodsFast(LayoutFileParser lfp, SootClass component) throws IOException {
@@ -1023,7 +1024,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * Creates the main method based on the current callback information, injects it
 	 * into the Soot scene.
 	 * 
-	 * @param The class name of a component to create a main method containing only
+	 * @param component The class name of a component to create a main method containing only
 	 *            that component, or null to create main method for all components
 	 */
 	private SootMethod createMainMethod(SootClass component) {
@@ -1283,6 +1284,11 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 				return sourcesSinks;
 			}
 
+			@Override
+			public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+				return Collections.EMPTY_MAP;
+			}
+
 		};
 
 		return runInfoflow(parser);
@@ -1321,8 +1327,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			throw new RuntimeException("No source/sink file specified for the data flow analysis");
 		String fileExtension = sourceSinkFile.substring(sourceSinkFile.lastIndexOf("."));
 		fileExtension = fileExtension.toLowerCase();
-		//lifecycle-add
-		PatternDataHelper.v().init(new String[]{"1"}, manifest.targetSdkVersion(), manifest.getMinSdkVersion());
+
 
 		ISourceSinkDefinitionProvider parser = null;
 		try {
@@ -1382,6 +1387,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			logger.warn("No entry points");
 			return null;
 		}
+		//lifecycle-add
+		PatternDataHelper.v().init(PatternDataHelper.testPattern, manifest.targetSdkVersion(), manifest.getMinSdkVersion());
 
 		// In one-component-at-a-time, we do not have a single entry point
 		// creator. For every entry point, run the data flow analysis.

@@ -128,11 +128,8 @@ public class StatementSourceSinkDefinition extends SourceSinkDefinition {
 		} else if (!local.equals(other.local))
 			return false;
 		if (stmt == null) {
-			if (other.stmt != null)
-				return false;
-		} else if (!stmt.equals(other.stmt))
-			return false;
-		return true;
-	}
+            return other.stmt == null;
+		} else return stmt.equals(other.stmt);
+    }
 
 }

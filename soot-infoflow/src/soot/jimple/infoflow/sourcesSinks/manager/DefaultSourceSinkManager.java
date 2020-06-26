@@ -19,10 +19,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
 import heros.solver.IDESolver;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootMethod;
-import soot.Value;
+import soot.*;
 import soot.jimple.DefinitionStmt;
 import soot.jimple.IdentityStmt;
 import soot.jimple.InstanceInvokeExpr;
@@ -264,13 +261,23 @@ public class DefaultSourceSinkManager implements ISourceSinkManager {
 	}
 
 	@Override
-	public void updateSinkInfoWithICFG(IInfoflowCFG icfg) {
+	public void updateSinkInfoWithICFG(IInfoflowCFG icfg, boolean isIntraComponent) {
 
 	}
 
 	@Override
 	public SinkInfo getSPSinkInfo(Stmt returnSite, InfoflowManager manager, String tag) {
 		return null;
+	}
+	public boolean isKillStmt(String killMethodSig){
+		return false;
+	}
+	public boolean canBeLeakObjects(Type currentType, SourceSinkDefinition def) {
+		return false;
+	}
+	@Override
+	public boolean shouldKillCurrentSource(String killMethodSig, SourceSinkDefinition sourceDef) {
+		return false;
 	}
 
 	/**
@@ -327,7 +334,7 @@ public class DefaultSourceSinkManager implements ISourceSinkManager {
 	}
 
 	@Override
-	public void initialize() {
+	public void initialize(boolean isIntraComponent) {
 		if (sourceDefs != null) {
 			sources = new HashSet<>();
 			for (String signature : sourceDefs) {

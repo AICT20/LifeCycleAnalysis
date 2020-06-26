@@ -305,9 +305,7 @@ public class InfoflowPerformanceData {
 			return false;
 		if (taintPropagationSeconds != other.taintPropagationSeconds)
 			return false;
-		if (totalRuntimeSeconds != other.totalRuntimeSeconds)
-			return false;
-		return true;
-	}
+        return totalRuntimeSeconds == other.totalRuntimeSeconds;
+    }
 
 }

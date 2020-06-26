@@ -34,7 +34,7 @@ public class SourceContextAndPath extends SourceContext implements Cloneable {
 
 	public List<Stmt> getPath() {
 		if (path == null)
-			return Collections.<Stmt>emptyList();
+			return Collections.emptyList();
 		List<Stmt> stmtPath = new ArrayList<>(this.path.size());
 		Iterator<Abstraction> it = path.reverseIterator();
 		while (it.hasNext()) {
@@ -87,7 +87,7 @@ public class SourceContextAndPath extends SourceContext implements Cloneable {
 
 		// If we don't track paths and have nothing to put on the stack, there
 		// is no need to create a new object
-		final boolean trackPath = pathConfig == null ? true : pathConfig.getPathReconstructionMode().reconstructPaths();
+		final boolean trackPath = pathConfig == null || pathConfig.getPathReconstructionMode().reconstructPaths();
 		if (abs.getCorrespondingCallSite() == null && !trackPath)
 			return this;
 

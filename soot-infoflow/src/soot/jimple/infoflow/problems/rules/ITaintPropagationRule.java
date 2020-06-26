@@ -29,10 +29,10 @@ public interface ITaintPropagationRule {
 	 * killed and nothing shall be propagated onwards
 	 * @return The new abstractions to be propagated to the next statement
 	 */
-	public Collection<Abstraction> propagateNormalFlow(Abstraction d1,
-			Abstraction source, Stmt stmt, Stmt destStmt,
-			ByReferenceBoolean killSource,
-			ByReferenceBoolean killAll);
+    Collection<Abstraction> propagateNormalFlow(Abstraction d1,
+                                                Abstraction source, Stmt stmt, Stmt destStmt,
+                                                ByReferenceBoolean killSource,
+                                                ByReferenceBoolean killAll);
 
 	/**
 	 * Propagates a flow across a call site
@@ -44,9 +44,9 @@ public interface ITaintPropagationRule {
 	 * all taints shall be killed, i.e., nothing shall be propagated
 	 * @return The new abstractions to be propagated to the next statement
 	 */
-	public Collection<Abstraction> propagateCallFlow(Abstraction d1,
-			Abstraction source, Stmt stmt, SootMethod dest,
-			ByReferenceBoolean killAll);
+    Collection<Abstraction> propagateCallFlow(Abstraction d1,
+                                              Abstraction source, Stmt stmt, SootMethod dest,
+                                              ByReferenceBoolean killAll);
 	
 	/**
 	 * Propagates a flow along a the call-to-return edge at a call site
@@ -59,9 +59,9 @@ public interface ITaintPropagationRule {
 	 * all taints shall be killed, i.e., nothing shall be propagated
 	 * @return The new abstractions to be propagated to the next statement
 	 */
-	public Collection<Abstraction> propagateCallToReturnFlow(Abstraction d1,
-			Abstraction source, Stmt stmt, ByReferenceBoolean killSource,
-			ByReferenceBoolean killAll);
+    Collection<Abstraction> propagateCallToReturnFlow(Abstraction d1,
+                                                      Abstraction source, Stmt stmt, ByReferenceBoolean killSource,
+                                                      ByReferenceBoolean killAll);
 	
 	/**
 	 * Propagates a flow along a the return edge
@@ -75,9 +75,9 @@ public interface ITaintPropagationRule {
 	 * all taints shall be killed, i.e., nothing shall be propagated
 	 * @return The new abstractions to be propagated to the next statement
 	 */
-	public Collection<Abstraction> propagateReturnFlow(
-			Collection<Abstraction> callerD1s, Abstraction source,
-			Stmt stmt, Stmt retSite, Stmt callSite,
-			ByReferenceBoolean killAll);
+    Collection<Abstraction> propagateReturnFlow(
+            Collection<Abstraction> callerD1s, Abstraction source,
+            Stmt stmt, Stmt retSite, Stmt callSite,
+            ByReferenceBoolean killAll);
 	
 }

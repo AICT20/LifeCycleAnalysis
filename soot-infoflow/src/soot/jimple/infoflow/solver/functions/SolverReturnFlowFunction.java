@@ -19,7 +19,7 @@ public abstract class SolverReturnFlowFunction implements FlowFunction<Abstracti
 		
 	@Override
 	public Set<Abstraction> computeTargets(Abstraction source) {
-		return computeTargets(source, null, Collections.<Abstraction>emptySet());
+		return computeTargets(source, null, Collections.emptySet());
 	}
 
 	/**

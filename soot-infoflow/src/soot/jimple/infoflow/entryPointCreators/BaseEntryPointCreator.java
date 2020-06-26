@@ -248,7 +248,7 @@ public abstract class BaseEntryPointCreator implements IEntryPointCreator {
 	 * @return The newly created invocation statement
 	 */
 	protected Stmt buildMethodCall(SootMethod methodToCall, Body body, Local classLocal, LocalGenerator gen) {
-		return buildMethodCall(methodToCall, body, classLocal, gen, Collections.<SootClass>emptySet());
+		return buildMethodCall(methodToCall, body, classLocal, gen, Collections.emptySet());
 	}
 
 	/**
@@ -471,7 +471,7 @@ public abstract class BaseEntryPointCreator implements IEntryPointCreator {
 	 */
 	protected Local generateClassConstructor(SootClass createdClass, Body body) {
 		return this.generateClassConstructor(createdClass, body, new HashSet<SootClass>(),
-				Collections.<SootClass>emptySet(), null);
+				Collections.emptySet(), null);
 	}
 
 	/**
@@ -723,13 +723,9 @@ public abstract class BaseEntryPointCreator implements IEntryPointCreator {
 	}
 
 	protected static boolean isSimpleType(String t) {
-		if (t.equals("java.lang.String") || t.equals("void") || t.equals("char") || t.equals("byte")
+		return t.equals("java.lang.String") || t.equals("void") || t.equals("char") || t.equals("byte")
 				|| t.equals("short") || t.equals("int") || t.equals("float") || t.equals("long") || t.equals("double")
-				|| t.equals("boolean")) {
-			return true;
-		} else {
-			return false;
-		}
+				|| t.equals("boolean");
 	}
 
 	protected Value getSimpleDefaultValue(Type t) {

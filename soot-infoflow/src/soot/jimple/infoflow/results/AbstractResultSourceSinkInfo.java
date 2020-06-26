@@ -81,12 +81,9 @@ public abstract class AbstractResultSourceSinkInfo {
 		} else if (!stmt.equals(si.stmt))
 			return false;
 		if (userData == null) {
-			if (si.userData != null)
-				return false;
-		} else if (!userData.equals(si.userData))
-			return false;
+            return si.userData == null;
+		} else return userData.equals(si.userData);
 
-		return true;
-	}
+    }
 
 }

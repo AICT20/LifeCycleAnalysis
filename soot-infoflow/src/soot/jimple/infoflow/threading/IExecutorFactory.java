@@ -25,7 +25,7 @@ public interface IExecutorFactory {
 	 *            The configuration of the data flow solver
 	 * @return The generated executor
 	 */
-	public InterruptableExecutor createExecutor(int numThreads, boolean allowSetSemantics,
-			InfoflowConfiguration config);
+    InterruptableExecutor createExecutor(int numThreads, boolean allowSetSemantics,
+                                         InfoflowConfiguration config);
 
 }

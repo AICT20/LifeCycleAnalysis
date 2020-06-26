@@ -19,7 +19,7 @@ public interface IMemoryManagerFactory {
 	 * statement, corresponding call site) shall be erased.
 	 * @return The memory manager
 	 */
-	public IMemoryManager<Abstraction, Unit> getMemoryManager(
-			boolean tracingEnabled, PathDataErasureMode erasePathData);
+    IMemoryManager<Abstraction, Unit> getMemoryManager(
+            boolean tracingEnabled, PathDataErasureMode erasePathData);
 
 }

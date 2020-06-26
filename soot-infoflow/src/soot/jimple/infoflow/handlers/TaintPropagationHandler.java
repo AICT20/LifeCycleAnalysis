@@ -17,7 +17,7 @@ public interface TaintPropagationHandler {
 	/**
 	 * Enumeration containing the supported types of data flow edges
 	 */
-	public enum FlowFunctionType {
+    enum FlowFunctionType {
 		NormalFlowFunction, CallFlowFunction, CallToReturnFlowFunction, ReturnFlowFunction
 	}
 
@@ -34,7 +34,7 @@ public interface TaintPropagationHandler {
 	 * @param type
 	 *            The type of data flow edge being processed
 	 */
-	public void notifyFlowIn(Unit stmt, Abstraction taint, InfoflowManager manager, FlowFunctionType type);
+    void notifyFlowIn(Unit stmt, Abstraction taint, InfoflowManager manager, FlowFunctionType type);
 
 	/**
 	 * Handler function that is invoked when a new taint is generated in the data
@@ -57,7 +57,7 @@ public interface TaintPropagationHandler {
 	 *         change the normal propagation behavior, just return the value of the
 	 *         "taints" parameter as-is.
 	 */
-	public Set<Abstraction> notifyFlowOut(Unit stmt, Abstraction d1, Abstraction incoming, Set<Abstraction> outgoing,
-			InfoflowManager manager, FlowFunctionType type);
+    Set<Abstraction> notifyFlowOut(Unit stmt, Abstraction d1, Abstraction incoming, Set<Abstraction> outgoing,
+                                   InfoflowManager manager, FlowFunctionType type);
 
 }

@@ -120,6 +120,9 @@ public class MainClass {
 	// Evaluation-specific options
 	private static final String OPTION_ANALYZE_FRAMEWORKS = "ff";
 
+	//Lifecycle-add 是否只进行component内部的resourceleak计算
+	private static final String OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT = "lc_iac";
+
 	private MainClass() {
 		initializeCommandLineOptions();
 	}
@@ -224,14 +227,19 @@ public class MainClass {
 		// Evaluation-specific options
 		options.addOption(OPTION_ANALYZE_FRAMEWORKS, "analyzeframeworks", false,
 				"Analyze the full frameworks together with the app without any optimizations");
+		options.addOption(OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT, "lifecycle_intracomponent", false,
+				"In our LifeCycleAnalysis, only intra-component resource leak is considered");
 	}
 
 	public static void main(String[] args) throws Exception {
-		String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\GmsCore.apk",
+		String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\talon-twitter-holo.apk",
 				"-p", "C:\\Users\\luyifei\\AppData\\Local\\Android\\Sdk\\platforms\\android-29\\android.jar",
 				"-s", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\SourcesAndSinks_lyf_resourceleak.txt",
 				"-o", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\outputfolder",
-				"-pr", "PRECISE"   //构建paths时提供完整的路径
+				"-pr", "PRECISE",   //构建paths时提供完整的路径
+//				"-im", "iccta_gmscore_1.txt"  //增加ICC
+//				"-os", //内存不够， 进行onesourceatatime
+				"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
 //				"-ds", "FLOWINSENSITIVE",
 //				"-pa", "CONTEXTINSENSITIVE"
 				};
@@ -819,6 +827,10 @@ public class MainClass {
 		if (cmd.hasOption(OPTION_ANALYZE_FRAMEWORKS)) {
 			config.setExcludeSootLibraryClasses(false);
 			config.setIgnoreFlowsInSystemPackages(false);
+		}
+
+		if (cmd.hasOption(OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT)) {
+			config.setLCIntraComponent(true);
 		}
 	}
 

@@ -59,7 +59,7 @@ public class InfoflowCFG implements IInfoflowCFG {
 	private final static int MAX_SIDE_EFFECT_ANALYSIS_DEPTH = 25;
 	private final static int MAX_STATIC_USE_ANALYSIS_DEPTH = 50;
 
-	private static enum StaticFieldUse {
+	private enum StaticFieldUse {
 		Unknown, Unused, Read, Write, ReadWrite
 	}
 
@@ -523,9 +523,8 @@ public class InfoflowCFG implements IInfoflowCFG {
 				return true;
 			if (ieSubSig.equals("java.lang.Object doPrivileged(java.security.PrivilegedExceptionAction)"))
 				return true;
-			if (ieSubSig.equals("java.lang.Object doPrivileged(java.security.PrivilegedExceptionAction,"
-					+ "java.security.AccessControlContext)"))
-				return true;
+			return ieSubSig.equals("java.lang.Object doPrivileged(java.security.PrivilegedExceptionAction,"
+					+ "java.security.AccessControlContext)");
 		}
 		return false;
 	}
@@ -557,8 +556,7 @@ public class InfoflowCFG implements IInfoflowCFG {
 			VirtualInvokeExpr viexpr = (VirtualInvokeExpr) iexpr;
 			if (viexpr.getBase().getType() instanceof RefType)
 				if (((RefType) viexpr.getBase().getType()).getSootClass().getName().equals("java.lang.reflect.Method"))
-					if (viexpr.getMethod().getName().equals("invoke"))
-						return true;
+					return viexpr.getMethod().getName().equals("invoke");
 		}
 		return false;
 	}

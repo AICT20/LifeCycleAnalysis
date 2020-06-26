@@ -8,7 +8,7 @@ package soot.jimple.infoflow.sourcesSinks.definitions;
  *
  */
 public enum SourceSinkType {
-	Undefined, Source, Sink, Neither, Both;
+	Undefined, Source, Sink, Neither, KILL, Both;
 
 	/**
 	 * Converts boolean flags (is source, is sink) into a source/sink type

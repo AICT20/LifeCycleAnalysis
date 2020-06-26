@@ -18,6 +18,6 @@ public interface ISolverTerminationReason {
 	 *         as the given one, i.e., the fact that the solver was terminated for
 	 *         multiple reasons
 	 */
-	public ISolverTerminationReason combine(ISolverTerminationReason terminationReason);
+    ISolverTerminationReason combine(ISolverTerminationReason terminationReason);
 
 }

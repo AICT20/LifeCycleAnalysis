@@ -93,9 +93,7 @@ public class AndroidMemoryManager extends FlowDroidMemoryManager {
 	private boolean isComponentType(Type tp) {
 		if (tp != null && tp instanceof RefType) {
 			RefType rt = (RefType) tp;
-			if (components.contains(rt.getSootClass())) {
-				return true;
-			}
+            return components.contains(rt.getSootClass());
 		}
 		return false;
 	}

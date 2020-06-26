@@ -15,7 +15,7 @@ public interface ITaintWrapperDataFlowAnalysis {
 	 * @param taintWrapper
 	 *            The taint wrapper to use or null to disable taint wrapping
 	 */
-	public void setTaintWrapper(ITaintPropagationWrapper taintWrapper);
+    void setTaintWrapper(ITaintPropagationWrapper taintWrapper);
 
 	/**
 	 * Gets the taint wrapper to be used for propagating taints over unknown
@@ -23,6 +23,6 @@ public interface ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return The taint wrapper to use or null if taint wrapping is disabled
 	 */
-	public ITaintPropagationWrapper getTaintWrapper();
+    ITaintPropagationWrapper getTaintWrapper();
 
 }

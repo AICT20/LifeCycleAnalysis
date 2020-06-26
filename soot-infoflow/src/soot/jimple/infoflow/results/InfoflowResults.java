@@ -550,9 +550,7 @@ public class InfoflowResults {
 				return false;
 		} else if (!results.equals(other.results))
 			return false;
-		if (terminationState != other.terminationState)
-			return false;
-		return true;
-	}
+        return terminationState == other.terminationState;
+    }
 
 }

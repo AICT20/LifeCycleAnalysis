@@ -12,12 +12,12 @@ public interface PreAnalysisHandler {
 	/**
 	 * This method is called before the callgraph is constructed
 	 */
-	public void onBeforeCallgraphConstruction();
+    void onBeforeCallgraphConstruction();
 	
 	/**
 	 * This method is called after the callgraph has been constructed, but
 	 * before the actual data flow analysis is carried out.
 	 */
-	public void onAfterCallgraphConstruction();
+    void onAfterCallgraphConstruction();
 
 }

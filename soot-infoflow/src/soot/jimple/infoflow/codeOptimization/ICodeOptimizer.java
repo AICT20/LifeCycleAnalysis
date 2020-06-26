@@ -23,7 +23,7 @@ public interface ICodeOptimizer {
 	 * @param config
 	 *            The data flow analyzer's configuration
 	 */
-	public void initialize(InfoflowConfiguration config);
+    void initialize(InfoflowConfiguration config);
 
 	/**
 	 * Runs the coe optimization
@@ -37,7 +37,7 @@ public interface ICodeOptimizer {
 	 * @param taintWrapper
 	 *            The taint wrapper
 	 */
-	public void run(InfoflowManager manager, Collection<SootMethod> entryPoints, ISourceSinkManager sourcesSinks,
-			ITaintPropagationWrapper taintWrapper);
+    void run(InfoflowManager manager, Collection<SootMethod> entryPoints, ISourceSinkManager sourcesSinks,
+             ITaintPropagationWrapper taintWrapper);
 
 }

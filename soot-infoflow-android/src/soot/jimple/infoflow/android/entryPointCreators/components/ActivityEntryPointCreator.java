@@ -24,10 +24,7 @@ import soot.jimple.infoflow.android.entryPointCreators.AndroidEntryPointConstant
 import soot.jimple.infoflow.android.entryPointCreators.FRAGMENTTYPE;
 import soot.jimple.infoflow.cfg.LibraryClassPatcher;
 import soot.jimple.infoflow.entryPointCreators.SimulatedCodeElementTag;
-import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
-import soot.jimple.infoflow.pattern.patterndata.Pattern2Data;
-import soot.jimple.infoflow.pattern.patterndata.PatternData;
-import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
+import soot.jimple.infoflow.pattern.patterndata.*;
 import soot.jimple.infoflow.pattern.PatternDataHelper;
 import soot.jimple.infoflow.pattern.patterntag.LCFinishBranchTag;
 import soot.util.MultiMap;
@@ -75,6 +72,8 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		Set<SootClass> newFragmentClasses = new HashSet<>();
 		Set<SootClass> oldFragmentClasses = new HashSet<>();
 		if (PatternDataHelper.v().hasPattern3()) {
+			Pattern3Data pattern3 = PatternDataHelper.v().getPattern3();
+			//这里再更新下pattern3中的数据，进行记录
 			for (SootClass fragment : this.fragmentClasses) {
 				FRAGMENTTYPE type = AndroidEntryPointConstants.getFrgamentType(fragment);
 				if (type == FRAGMENTTYPE.V4 || type == FRAGMENTTYPE.ANDROID) {
@@ -82,6 +81,7 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 				} else if (type == FRAGMENTTYPE.ANDROIDX) {
 					newFragmentClasses.add(fragment);
 				}
+				pattern3.updateFragments(this.component, fragment, type.toString());
 			}
 		} else {
 			oldFragmentClasses.addAll(this.fragmentClasses);

@@ -28,11 +28,10 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import soot.SootMethod;
 import soot.jimple.infoflow.android.data.AndroidMethod;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
-import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkType;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+import soot.jimple.infoflow.sourcesSinks.definitions.*;
 
 /**
  * Parser for the permissions to method map of Adrienne Porter Felt.
@@ -44,6 +43,8 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private Map<String, AndroidMethod> methods = null;
+//	private Map<String, Set<SourceSinkDefinition>> kills = null;
+	private Map<ISourceSinkCategory, ResourceLeakGroup> leakGroups = null;
 	private Set<SourceSinkDefinition> sourceList = null;
 	private Set<SourceSinkDefinition> sinkList = null;
 	private Set<SourceSinkDefinition> neitherList = null;
@@ -52,6 +53,8 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 
 	private List<String> data;
 	private final String regex = "^<(.+):\\s*(.+)\\s+(.+)\\s*\\((.*)\\)>\\s*(.*?)(\\s+->\\s+(.*))?$";
+	//lifecycle-add
+	private final String resourceleakregex = "^<(.+)>\\s*->\\s*(.*)$";
 	// private final String regexNoRet =
 	// "^<(.+):\\s(.+)\\s?(.+)\\s*\\((.*)\\)>\\s+(.*?)(\\s+->\\s+(.*))?+$";
 	private final String regexNoRet = "^<(.+):\\s*(.+)\\s*\\((.*)\\)>\\s*(.*?)?(\\s+->\\s+(.*))?$";
@@ -120,38 +123,77 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 
 	private void parse() {
 		methods = new HashMap<>(INITIAL_SET_SIZE);
+		leakGroups = new HashMap<>(INITIAL_SET_SIZE);
 		sourceList = new HashSet<>(INITIAL_SET_SIZE);
 		sinkList = new HashSet<>(INITIAL_SET_SIZE);
 		neitherList = new HashSet<>(INITIAL_SET_SIZE);
 
 		Pattern p = Pattern.compile(regex);
 		Pattern pNoRet = Pattern.compile(regexNoRet);
+		Pattern pResourceLeak = Pattern.compile(resourceleakregex);
 
+		ResourceLeakGroup currentGroup = new ResourceLeakGroup();
 		for (String line : this.data) {
+			if ("".equals(line)) {
+				//说明到了分界点
+				if (!currentGroup.isEmpty()) {
+					this.leakGroups.put(currentGroup.getCateGory(), currentGroup);
+					//再重新刷新
+					currentGroup = new ResourceLeakGroup();
+				}
+			}
+			AndroidMethod currentM = null;
 			if (line.isEmpty() || line.startsWith("%"))
 				continue;
 			Matcher m = p.matcher(line);
 			if (m.find()) {
-				createMethod(m);
+				currentM = createMethod(m);
 			} else {
 				Matcher mNoRet = pNoRet.matcher(line);
 				if (mNoRet.find()) {
-					createMethod(mNoRet);
-				} else
-					logger.warn(String.format("Line does not match: %s", line));
+					currentM = createMethod(mNoRet);
+				} else {
+					Matcher mReourceleak = pResourceLeak.matcher(line);
+					if (mReourceleak.find()) {
+						completeCurrentResourceLeakGroup(currentGroup, mReourceleak);
+					} else {
+						logger.warn(String.format("Line does not match: %s", line));
+					}
+				}
+			}
+			if (null != currentM) {
+				if (currentM.getSourceSinkType().isSource())
+					currentGroup.addDefStr(currentM.getSignature());
+				if (currentM.getSourceSinkType() == SourceSinkType.KILL)
+					currentGroup.addKillSig(currentM.getSignature());
 			}
 		}
+		if (!currentGroup.isEmpty()) {
+			this.leakGroups.put(currentGroup.getCateGory(), currentGroup);
+		}
+
 
 		// Create the source/sink definitions
 		for (AndroidMethod am : methods.values()) {
 			SourceSinkDefinition singleMethod = new MethodSourceSinkDefinition(am);
-
-			if (am.getSourceSinkType().isSource())
+			String currentSig = am.getSignature();
+			if (am.getSourceSinkType().isSource()) {
 				sourceList.add(singleMethod);
+				//lifecycle-add 更新Kill对应的SourceSinkDefinition
+				for (ResourceLeakGroup group : this.leakGroups.values()) {
+					if (group.updateDefinition(currentSig, singleMethod)) {
+						//说明这个method是这个group的，统一改成一致的category
+						singleMethod.setCategory(group.getCateGory());
+					}
+				}
+
+			}
 			if (am.getSourceSinkType().isSink())
 				sinkList.add(singleMethod);
 			if (am.getSourceSinkType() == SourceSinkType.Neither)
 				neitherList.add(singleMethod);
+//			if (am.getSourceSinkType() == SourceSinkType.KILL)
+//				kills.add(am.getSignature());
 		}
 	}
 
@@ -164,6 +206,17 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 		} else {
 			methods.put(am.getSignature(), am);
 			return am;
+		}
+	}
+
+	private void completeCurrentResourceLeakGroup(ResourceLeakGroup group, Matcher m) {
+		assert (m.group(1) != null && m.group(2) != null);
+		String type = m.group(2);
+		String value = m.group(1);
+		if (type.equals("_TITLE_")) {
+			group.setCateGory(value);
+		} else if (type.equals("_OBJECT_")) {
+			group.addObjStrs(value);
 		}
 	}
 
@@ -195,8 +248,7 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 		String classData = "";
 		String permData = "";
 		Set<String> permissions = null;
-		;
-		if (groupIdx < m.groupCount() && m.group(groupIdx) != null) {
+        if (groupIdx < m.groupCount() && m.group(groupIdx) != null) {
 			permData = m.group(groupIdx);
 			if (permData.contains("->")) {
 				classData = permData.replace("->", "").trim();
@@ -237,7 +289,7 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 						singleMethod.setSourceSinkType(SourceSinkType.Both);
 						//lifecycle-add 多个KIll，但由于kill比较针对性，所以这里就只是加了看看的
 					else if (target.equals("_KILL_"))
-						;
+						singleMethod.setSourceSinkType(SourceSinkType.KILL);
 					else
 						throw new RuntimeException("error in target definition: " + target);
 				}
@@ -256,5 +308,10 @@ public class PermissionMethodParser implements ISourceSinkDefinitionProvider {
 		sourcesSinks.addAll(sinkList);
 		sourcesSinks.addAll(neitherList);
 		return sourcesSinks;
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return this.leakGroups;
 	}
 }

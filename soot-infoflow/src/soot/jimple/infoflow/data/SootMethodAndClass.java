@@ -133,10 +133,8 @@ public class SootMethodAndClass {
 			return false;
 		if (!this.parameters.equals(otherMethod.parameters))
 			return false;
-		if (!this.className.equals(otherMethod.className))
-			return false;
-		return true;
-	}
+        return this.className.equals(otherMethod.className);
+    }
 	
 	@Override
 	public int hashCode() {

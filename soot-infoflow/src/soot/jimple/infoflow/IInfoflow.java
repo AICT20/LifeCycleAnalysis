@@ -42,14 +42,14 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return The configuration to be used for the data flow analysis
 	 */
-	public InfoflowConfiguration getConfig();
+    InfoflowConfiguration getConfig();
 
 	/**
 	 * Sets the configuration to be used for the data flow analysis
 	 * 
 	 * @param config The configuration to be used for the data flow analysis
 	 */
-	public void setConfig(InfoflowConfiguration config);
+    void setConfig(InfoflowConfiguration config);
 
 	/**
 	 * Sets the handler class to be used for modeling the effects of native methods
@@ -57,7 +57,7 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @param handler The native call handler to use
 	 */
-	public void setNativeCallHandler(INativeCallHandler handler);
+    void setNativeCallHandler(INativeCallHandler handler);
 
 	/**
 	 * List of preprocessors that need to be executed in order before the
@@ -65,7 +65,7 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @param preprocessors the pre-processors
 	 */
-	public void setPreProcessors(Collection<? extends PreAnalysisHandler> preprocessors);
+    void setPreProcessors(Collection<? extends PreAnalysisHandler> preprocessors);
 
 	/**
 	 * Sets the set of post-processors that shall be executed after the data flow
@@ -73,7 +73,7 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @param postprocessors The post-processors to execute on the results
 	 */
-	public void setPostProcessors(Collection<? extends PostAnalysisHandler> postprocessors);
+    void setPostProcessors(Collection<? extends PostAnalysisHandler> postprocessors);
 
 	/**
 	 * Computes the information flow on a list of entry point methods. This list is
@@ -91,8 +91,8 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param sinks             list of sink class+method (as string conforms to
 	 *                          SootMethod representation)
 	 */
-	public void computeInfoflow(String appPath, String libPath, IEntryPointCreator entryPointCreator,
-			List<String> sources, List<String> sinks);
+    void computeInfoflow(String appPath, String libPath, IEntryPointCreator entryPointCreator,
+                         List<String> sources, List<String> sinks);
 
 	/**
 	 * Computes the information flow on a list of entry point methods. This list is
@@ -110,8 +110,8 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param sinks       list of sink class+method (as string conforms to
 	 *                    SootMethod representation)
 	 */
-	public void computeInfoflow(String appPath, String libPath, Collection<String> entryPoints,
-			Collection<String> sources, Collection<String> sinks);
+    void computeInfoflow(String appPath, String libPath, Collection<String> entryPoints,
+                         Collection<String> sources, Collection<String> sinks);
 
 	/**
 	 * Computes the information flow on a single method. This method is directly
@@ -126,8 +126,8 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param sinks      list of sink class+method (as string conforms to SootMethod
 	 *                   representation)
 	 */
-	public void computeInfoflow(String appPath, String libPath, String entryPoint, Collection<String> sources,
-			Collection<String> sinks);
+    void computeInfoflow(String appPath, String libPath, String entryPoint, Collection<String> sources,
+                         Collection<String> sinks);
 
 	/**
 	 * Computes the information flow on a list of entry point methods. This list is
@@ -143,8 +143,8 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param sourcesSinks      manager class for identifying sources and sinks in
 	 *                          the source code
 	 */
-	public void computeInfoflow(String appPath, String libPath, IEntryPointCreator entryPointCreator,
-			ISourceSinkManager sourcesSinks);
+    void computeInfoflow(String appPath, String libPath, IEntryPointCreator entryPointCreator,
+                         ISourceSinkManager sourcesSinks);
 
 	/**
 	 * Computes the information flow on a single method. This method is directly
@@ -157,14 +157,14 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param sourcesSinks manager class for identifying sources and sinks in the
 	 *                     source code
 	 */
-	public void computeInfoflow(String appPath, String libPath, String entryPoint, ISourceSinkManager sourcesSinks);
+    void computeInfoflow(String appPath, String libPath, String entryPoint, ISourceSinkManager sourcesSinks);
 
 	/**
 	 * getResults returns the results found by the analysis
 	 * 
 	 * @return the results
 	 */
-	public InfoflowResults getResults();
+    InfoflowResults getResults();
 
 	/**
 	 * A result is available if the analysis has finished - so if this method
@@ -173,16 +173,16 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return boolean that states if a result is available
 	 */
-	public boolean isResultAvailable();
+    boolean isResultAvailable();
 
-	public void setIPCManager(IIPCManager ipcManager);
+	void setIPCManager(IIPCManager ipcManager);
 
 	/**
 	 * Sets the Soot configuration callback to be used for this analysis
 	 * 
 	 * @param config The configuration callback to be used for the analysis
 	 */
-	public void setSootConfig(IInfoflowConfig config);
+    void setSootConfig(IInfoflowConfig config);
 
 	/**
 	 * Sets the path builder factory to be used in subsequent data flow analyses
@@ -190,7 +190,7 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * @param factory The path bilder factory to use for constructing path
 	 *                reconstruction algorithms
 	 */
-	public void setPathBuilderFactory(IPathBuilderFactory factory);
+    void setPathBuilderFactory(IPathBuilderFactory factory);
 
 	/**
 	 * Gets the concrete set of sources that have been collected in preparation for
@@ -199,7 +199,7 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return The set of sources collected for taint analysis
 	 */
-	public Set<Stmt> getCollectedSources();
+    Set<Stmt> getCollectedSources();
 
 	/**
 	 * Gets the concrete set of sinks that have been collected in preparation for
@@ -208,56 +208,56 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return The set of sinks collected for taint analysis
 	 */
-	public Set<Stmt> getCollectedSinks();
+    Set<Stmt> getCollectedSinks();
 
 	/**
 	 * Adds a handler that is called when information flow results are available
 	 * 
 	 * @param handler The handler to add
 	 */
-	public void addResultsAvailableHandler(ResultsAvailableHandler handler);
+    void addResultsAvailableHandler(ResultsAvailableHandler handler);
 
 	/**
 	 * Removes a handler that is called when information flow results are available
 	 * 
 	 * @param handler The handler to remove
 	 */
-	public void removeResultsAvailableHandler(ResultsAvailableHandler handler);
+    void removeResultsAvailableHandler(ResultsAvailableHandler handler);
 
 	/**
 	 * Aborts the data flow analysis. This is useful when the analysis controller is
 	 * running in a different thread and the main thread (e.g., a GUI) wants to
 	 * abort the analysis
 	 */
-	public void abortAnalysis();
+    void abortAnalysis();
 
 	/**
 	 * Sets a handler which is invoked whenever a taint is propagated
 	 * 
 	 * @param handler The handler to be invoked when propagating taints
 	 */
-	public void setTaintPropagationHandler(TaintPropagationHandler handler);
+    void setTaintPropagationHandler(TaintPropagationHandler handler);
 
 	/**
 	 * Sets a handler which is invoked whenever an alias is propagated backwards
 	 * 
 	 * @param handler The handler to be invoked when propagating aliases
 	 */
-	public void setBackwardsPropagationHandler(TaintPropagationHandler handler);
+    void setBackwardsPropagationHandler(TaintPropagationHandler handler);
 
 	/**
 	 * Sets the factory to be used for creating memory managers
 	 * 
 	 * @param factory The memory manager factory to use
 	 */
-	public void setMemoryManagerFactory(IMemoryManagerFactory factory);
+    void setMemoryManagerFactory(IMemoryManagerFactory factory);
 
 	/**
 	 * Sets the factory to be used for creating thread pool executors
 	 * 
 	 * @param executorFactory The executor factory to use
 	 */
-	public void setExecutorFactory(IExecutorFactory executorFactory);
+    void setExecutorFactory(IExecutorFactory executorFactory);
 
 	/**
 	 * Sets the factory to be used for creating the propagation rule manager, which
@@ -265,6 +265,6 @@ public interface IInfoflow extends ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @param ruleManagerFactory The factory class for the propagation rule manager
 	 */
-	public void setPropagationRuleManagerFactory(IPropagationRuleManagerFactory ruleManagerFactory);
+    void setPropagationRuleManagerFactory(IPropagationRuleManagerFactory ruleManagerFactory);
 
 }

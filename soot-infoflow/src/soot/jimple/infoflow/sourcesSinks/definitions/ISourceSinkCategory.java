@@ -16,13 +16,13 @@ public interface ISourceSinkCategory {
 	 * 
 	 * @return A human readable description for this category
 	 */
-	public String getHumanReadableDescription();
+    String getHumanReadableDescription();
 
 	/**
 	 * Gets a machine-readable description of the current category.
 	 *  
 	 * @return An id for this category
 	 */
-	public String getID();
+    String getID();
 
 }

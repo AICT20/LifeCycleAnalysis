@@ -31,5 +31,5 @@ public interface IInfoflowConfig {
 	 *            The configuration of the data flow solver
 	 * 
 	 */
-	public void setSootOptions(soot.options.Options options, InfoflowConfiguration config);
+    void setSootOptions(soot.options.Options options, InfoflowConfiguration config);
 }

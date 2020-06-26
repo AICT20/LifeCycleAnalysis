@@ -101,8 +101,7 @@ public class TypeUtils {
 		// If both types are primitive, they can be cast unless a boolean type
 		// is involved
 		if (destType instanceof PrimType && sourceType instanceof PrimType)
-			if (destType != BooleanType.v() && sourceType != BooleanType.v())
-				return true;
+            return destType != BooleanType.v() && sourceType != BooleanType.v();
 
 		return false;
 	}
@@ -145,8 +144,7 @@ public class TypeUtils {
 		// The next field's base type must also be cast-compatible to the new
 		// base type
 		if (accessPath.isFieldRef() && accessPath.getFieldCount() > fieldStartIdx)
-			if (!checkCast(type, accessPath.getFields()[fieldStartIdx].getDeclaringClass().getType()))
-				return false;
+            return checkCast(type, accessPath.getFields()[fieldStartIdx].getDeclaringClass().getType());
 
 		// No type problems found
 		return true;
@@ -155,8 +153,7 @@ public class TypeUtils {
 	public static boolean isPrimitiveArray(Type type) {
 		if (type instanceof ArrayType) {
 			ArrayType at = (ArrayType) type;
-			if (at.getArrayElementType() instanceof PrimType)
-				return true;
+            return at.getArrayElementType() instanceof PrimType;
 		}
 		return false;
 	}

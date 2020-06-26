@@ -36,11 +36,8 @@ public class Propagator<D> {
 			return false;
 		Propagator other = (Propagator) obj;
 		if (abstraction == null) {
-			if (other.abstraction != null)
-				return false;
-		} else if (!abstraction.equals(other.abstraction))
-			return false;
-		return true;
-	}
+            return other.abstraction == null;
+		} else return abstraction.equals(other.abstraction);
+    }
 
 }

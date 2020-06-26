@@ -94,12 +94,9 @@ class WeakPathEdge<N,D> {
 		} else if (!dTarget.get().equals(other.dTarget.get()))
 			return false;
 		if (target.get() == null) {
-			if (other.target.get() != null)
-				return false;
-		} else if (!target.get().equals(other.target.get()))
-			return false;
-		return true;
-	}
+            return other.target.get() == null;
+		} else return target.get().equals(other.target.get());
+    }
 
 	@Override
 	public String toString() {

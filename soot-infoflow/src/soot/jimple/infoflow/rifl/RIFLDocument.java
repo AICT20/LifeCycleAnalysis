@@ -81,12 +81,9 @@ public class RIFLDocument {
 			} else if (!handle.equals(other.handle))
 				return false;
 			if (element == null) {
-				if (other.element != null)
-					return false;
-			} else if (!element.equals(other.element))
-				return false;
-			return true;
-		}
+                return other.element == null;
+			} else return element.equals(other.element);
+        }
 	}
 	
 	/**
@@ -180,10 +177,8 @@ public class RIFLDocument {
 			if (getClass() != obj.getClass())
 				return false;
 			SourceSinkSpec other = (SourceSinkSpec) obj;
-			if (type != other.type)
-				return false;
-			return true;
-		}
+            return type == other.type;
+        }
 		
 	}
 	
@@ -232,12 +227,9 @@ public class RIFLDocument {
 				return false;
 			JavaSourceSinkSpec other = (JavaSourceSinkSpec) obj;
 			if (className == null) {
-				if (other.className != null)
-					return false;
-			} else if (!className.equals(other.className))
-				return false;
-			return true;
-		}
+                return other.className == null;
+			} else return className.equals(other.className);
+        }
 		
 	}
 	
@@ -289,12 +281,9 @@ public class RIFLDocument {
 				return false;
 			JavaMethodSourceSinkSpec other = (JavaMethodSourceSinkSpec) obj;
 			if (halfSignature == null) {
-				if (other.halfSignature != null)
-					return false;
-			} else if (!halfSignature.equals(other.halfSignature))
-				return false;
-			return true;
-		}
+                return other.halfSignature == null;
+			} else return halfSignature.equals(other.halfSignature);
+        }
 		
 	}
 	
@@ -348,10 +337,8 @@ public class RIFLDocument {
 			if (getClass() != obj.getClass())
 				return false;
 			JavaParameterSpec other = (JavaParameterSpec) obj;
-			if (paramIdx != other.paramIdx)
-				return false;
-			return true;
-		}
+            return paramIdx == other.paramIdx;
+        }
 
 	}
 	

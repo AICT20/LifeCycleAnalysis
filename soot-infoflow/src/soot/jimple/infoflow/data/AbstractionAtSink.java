@@ -92,12 +92,9 @@ public class AbstractionAtSink {
 		} else if (!sinkDefinition.equals(other.sinkDefinition))
 			return false;
 		if (sinkStmt == null) {
-			if (other.sinkStmt != null)
-				return false;
-		} else if (!sinkStmt.equals(other.sinkStmt))
-			return false;
-		return true;
-	}
+            return other.sinkStmt == null;
+		} else return sinkStmt.equals(other.sinkStmt);
+    }
 
 	@Override
 	public String toString() {

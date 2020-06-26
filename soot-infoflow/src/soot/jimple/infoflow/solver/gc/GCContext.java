@@ -41,11 +41,8 @@ public class GCContext<N, D extends FastSolverLinkedNode<D, N>> {
 		} else if (!context.equals(other.context))
 			return false;
 		if (method == null) {
-			if (other.method != null)
-				return false;
-		} else if (!method.equals(other.method))
-			return false;
-		return true;
-	}
+            return other.method == null;
+		} else return method.equals(other.method);
+    }
 
 }

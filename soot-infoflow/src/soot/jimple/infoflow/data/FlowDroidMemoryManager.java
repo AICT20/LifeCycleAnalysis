@@ -65,11 +65,8 @@ public class FlowDroidMemoryManager implements IMemoryManager<Abstraction, Unit>
 				return false;
 			if (abs.getCurrentStmt() != other.abs.getCurrentStmt())
 				return false;
-			if (abs.getCorrespondingCallSite() != other.abs.getCorrespondingCallSite())
-				return false;
-
-			return true;
-		}
+            return abs.getCorrespondingCallSite() == other.abs.getCorrespondingCallSite();
+        }
 
 	}
 

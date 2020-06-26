@@ -13,19 +13,14 @@ package soot.jimple.infoflow.android.data.parsers;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import soot.jimple.infoflow.android.data.AndroidMethod;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
-import soot.jimple.infoflow.sourcesSinks.definitions.MethodSourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkType;
+import soot.jimple.infoflow.resourceleak.ResourceLeakGroup;
+import soot.jimple.infoflow.sourcesSinks.definitions.*;
 
 /**
  * Parser for Android method / permission maps in the format defined by Port
@@ -154,6 +149,11 @@ public class CSVPermissionMethodParser implements ISourceSinkDefinitionProvider 
 		sourcesSinks.addAll(sinkList);
 		sourcesSinks.addAll(neitherList);
 		return sourcesSinks;
+	}
+
+	@Override
+	public Map<ISourceSinkCategory, ResourceLeakGroup> getLeakGroups() {
+		return Collections.EMPTY_MAP;
 	}
 
 }

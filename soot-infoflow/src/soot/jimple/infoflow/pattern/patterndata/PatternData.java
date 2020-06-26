@@ -30,9 +30,7 @@ public abstract class PatternData implements PatternInterface{
             if ( ((Stmt)u).containsInvokeExpr()) {
                 SootMethod m = ((Stmt)u).getInvokeExpr().getMethod();
                 //说明是对这些onDestroy method的调用
-                if (seedMethods.contains(m)) {
-                    return true;
-                }
+                return seedMethods.contains(m);
             }
         }
         return false;
@@ -53,9 +51,9 @@ public abstract class PatternData implements PatternInterface{
                     seedMethods.add(sm);
                 }
                 //下面是测试用的
-                if (sm.getSubSignature().contains("onSaveInstance")) {
-                    System.out.println();
-                }
+//                if (sm.getSubSignature().contains("onSaveInstance")) {
+//                    System.out.println();
+//                }
             }
         } else {
             System.err.println("call graph loading for patterns error!!!");
