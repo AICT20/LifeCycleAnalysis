@@ -5,6 +5,7 @@ import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,9 +22,18 @@ public class Pattern1Data extends PatternData {
         return this.involvedEntrypoints;
     }
 
+    //TODO  这里错了！！！ 在同一个Activity， finish()应该既可以在onCreate也可以在onStart中执行
     @Override
     public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalInvocationMap) {
         this.involvedEntrypoints.clear();
+        if (null == totalInvocationMap || totalInvocationMap.isEmpty()) {
+            this.involvedEntrypoints = new HashMap<>();
+            for (SootClass nowclass : allEntrypoints) {
+                this.involvedEntrypoints.put(nowclass, PatternDataConstant.ONCREATESUBSIG);
+            }
+            return;
+        }
+
         for (SootMethod keym : totalInvocationMap.keySet()) {
             if (keym.getSubSignature().equals(PatternDataConstant.ONCREATESUBSIG) || keym.getSubSignature().equals(PatternDataConstant.ONSTARTSUBSIG)) {
                 Set<SootMethod> invokedms = totalInvocationMap.get(keym);

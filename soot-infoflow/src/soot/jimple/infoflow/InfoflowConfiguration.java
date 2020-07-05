@@ -222,8 +222,8 @@ public class InfoflowConfiguration {
 		private boolean sequentialPathProcessing = false;
 		private PathReconstructionMode pathReconstructionMode = PathReconstructionMode.NoPaths;
 		private PathBuildingAlgorithm pathBuildingAlgorithm = PathBuildingAlgorithm.ContextSensitive;
-		private int maxCallStackSize = 30;
-		private int maxPathLength = 75;
+		private int maxCallStackSize = 15; //原为 30
+		private int maxPathLength = 40;//原为 75
 		private int maxPathsPerAbstraction = 15;
 		private long pathReconstructionTimeout = 0;
 		private int pathReconstructionBatchSize = 5;
@@ -962,7 +962,7 @@ public class InfoflowConfiguration {
 	private boolean taintAnalysisEnabled = true;
 	private boolean incrementalResultReporting = false;
 	private long dataFlowTimeout = 0;
-	private double memoryThreshold = 0.9d;
+	private double memoryThreshold = 0.8d; //原本是0.9 这里改一下，改成0.8试试会不会好一些
 	private boolean oneSourceAtATime = false;
 
 	private boolean intraComponent = false;

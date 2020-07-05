@@ -746,7 +746,11 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			//------------------------等全部构建完之后，我们进行初步的分析，然后根据分析结果再构建ICFG-----------------------------------
 			//只能在循环中不断更新Pattern，因为callgraph的构建和jimple的构建是一起的
 			//lifecycle-add 这里可以考虑先更新一波Pattern中的嫌疑Component
-			PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
+			if (PatternDataHelper.adaptAllEntrypoints) {
+				PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints);
+			} else {
+				PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
+			}
 			createMainMethod(component);
 //			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
 			releaseCallgraph();

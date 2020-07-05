@@ -24,6 +24,7 @@ import soot.jimple.infoflow.collect.AtomicBitSet;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG.UnitContainer;
 import soot.jimple.infoflow.solver.fastSolver.FastSolverLinkedNode;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
+import soot.jimple.infoflow.util.MyComparativeFlyWightSet;
 import soot.jimple.infoflow.util.MyOwnUtils;
 
 /**
@@ -53,6 +54,15 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected Set<Stmt> killStmts = null;
 	protected Set<Pair<IfStmt, Boolean>> ifkillStmts = null;
 	protected boolean isfinishing = false;
+	//新一轮调整
+	protected SourceSinkDefinition tempdef = null;//这里的tempdef不进行hash以及equals的比较
+	public SourceSinkDefinition getOriginalDef() {
+		return tempdef;
+	}
+	public void setOriginalDef(SourceSinkDefinition def) {
+		tempdef = def;
+	}
+
 	/**
 	 * Unit/Stmt which activates the taint when the abstraction passes it
 	 */
@@ -132,21 +142,11 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 					return false;
 			} else if (!abs1.currentStmt.equals(abs2.currentStmt))
 				return false;
-			if (abs1.killStmts == null || abs1.killStmts.isEmpty()) {
-				if (abs2.killStmts != null && !abs2.killStmts.isEmpty())
-					return false;
-			} else if (abs2.killStmts != null && !abs2.killStmts.isEmpty()) {
-				if (!MyOwnUtils.setCompare(abs1.killStmts, abs2.killStmts)) {
-					return false;
-				}
+			if (abs1.killStmts != abs2.killStmts) {
+				return false;
 			}
-			if (abs1.ifkillStmts == null || abs1.ifkillStmts.isEmpty()) {
-				if (abs2.ifkillStmts != null && !abs2.ifkillStmts.isEmpty())
-					return false;
-			} else if (abs2.ifkillStmts != null && !abs2.ifkillStmts.isEmpty()) {
-				if (!MyOwnUtils.setCompare(abs1.ifkillStmts, abs2.ifkillStmts)) {
-					return false;
-				}
+			if (abs1.ifkillStmts != abs2.ifkillStmts) {
+				return false;
 			}
 
 			return abs1.localEquals(abs2);
@@ -170,6 +170,9 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		this.neighbors = null;
 		this.isImplicit = isImplicit;
 		this.currentStmt = sourceContext == null ? null : sourceContext.getStmt();
+		if (null != sourceContext) {
+			this.tempdef = sourceContext.definition;
+		}
 	}
 
 	/**
@@ -190,18 +193,15 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 			exceptionThrown = original.exceptionThrown;
 			activationUnit = original.activationUnit;
 			isfinishing = original.isfinishing;
-			if (null != original.killStmts) {
-				killStmts = new HashSet<>(original.killStmts);
-			}
-			if (null != original.ifkillStmts) {
-				ifkillStmts = new HashSet<>(original.ifkillStmts);
-			}
+			killStmts = original.killStmts;
+			ifkillStmts = original.ifkillStmts;
 			assert activationUnit == null || flowSensitiveAliasing;
 
 			postdominators = original.postdominators == null ? null
 					: new ArrayList<UnitContainer>(original.postdominators);
 
 //			dependsOnCutAP = original.dependsOnCutAP;
+			tempdef = original.tempdef;
 			isImplicit = original.isImplicit;
 		}
 		accessPath = p;
@@ -248,9 +248,10 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		abs.currentStmt = killStmt;
 		abs.sourceContext = null;
 		if (null == abs.killStmts) {
-			abs.killStmts = new HashSet<>();
+			abs.killStmts = MyComparativeFlyWightSet.getKillSetGenerator().getSet(tempdef, Collections.EMPTY_SET, killStmt);
+		} else {
+			abs.killStmts = MyComparativeFlyWightSet.getKillSetGenerator().getSet(tempdef, abs.killStmts, killStmt);
 		}
-		abs.killStmts.add(killStmt);
 		return abs;
 	}
 
@@ -262,9 +263,10 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		abs.currentStmt = killStmt;
 		abs.sourceContext = null;
 		if (null == abs.ifkillStmts) {
-			abs.ifkillStmts = new HashSet<>();
+			abs.ifkillStmts = MyComparativeFlyWightSet.getIfKillSetGenerator().getSet(tempdef, Collections.EMPTY_SET, new Pair<>(killStmt, isjump));
+		} else {
+			abs.ifkillStmts = MyComparativeFlyWightSet.getIfKillSetGenerator().getSet(tempdef, abs.ifkillStmts, new Pair<>(killStmt, isjump));
 		}
-		abs.ifkillStmts.add(new Pair<>(killStmt, isjump));
 		return abs;
 	}
 
@@ -521,21 +523,11 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 				return false;
 		} else if (!(accessPath.equals(other.accessPath)))
 			return false;
-		if (killStmts == null || killStmts.isEmpty()) {
-			if (other.killStmts != null && !other.killStmts.isEmpty())
-				return false;
-		} else if (other.killStmts != null && ! other.killStmts.isEmpty()) {
-			if (!MyOwnUtils.setCompare(killStmts, other.killStmts)) {
-				return false;
-			}
+		if (killStmts != other.killStmts) {
+			return false;
 		}
-		if (ifkillStmts == null || ifkillStmts.isEmpty()) {
-			if (other.ifkillStmts != null && !other.ifkillStmts.isEmpty())
-				return false;
-		} else if (other.ifkillStmts != null && ! other.ifkillStmts.isEmpty()) {
-			if (!MyOwnUtils.setCompare(ifkillStmts, other.ifkillStmts)) {
-				return false;
-			}
+		if (ifkillStmts != other.ifkillStmts) {
+			return false;
 		}
 		return localEquals(other);
 	}

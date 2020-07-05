@@ -10,6 +10,7 @@ import java.util.*;
 
 public class PatternDataHelper implements PatternInterface {
     public static String[] testPattern = new String[]{"1"};
+    public static boolean adaptAllEntrypoints = true;
 
     String[] tags = null;
     Map<Integer, PatternData> currentPatterns = null;
@@ -44,6 +45,15 @@ public class PatternDataHelper implements PatternInterface {
 
 
     }
+
+    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints) {
+        for (PatternData pattern : currentPatterns.values()) {
+            pattern.updateInvolvedEntrypoints(allEntrypoints, null);
+        }
+
+    }
+
+
 
     private void buildTotalInvokeMap() {
         for (SootMethod m : methodDirectInvokeMap.keySet()) {
@@ -122,7 +132,10 @@ public class PatternDataHelper implements PatternInterface {
         Set<SootClass> allSubClass = new HashSet<>();
         Hierarchy h = Scene.v().getActiveHierarchy();
         if (currentClass.isInterface()) {
-            allSubClass.addAll(h.getImplementersOf(currentClass));
+            try {
+                allSubClass.addAll(h.getImplementersOf(currentClass));
+            } catch (NullPointerException e) {
+            }
             for (SootClass superInterface : h.getSubinterfacesOf(currentClass)) {
                 allSubClass.addAll(h.getImplementersOf(superInterface));
             }

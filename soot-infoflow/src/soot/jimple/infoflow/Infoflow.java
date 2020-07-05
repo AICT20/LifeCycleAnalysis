@@ -63,6 +63,9 @@ import soot.jimple.infoflow.memory.ISolverTerminationReason;
 import soot.jimple.infoflow.memory.reasons.AbortRequestedReason;
 import soot.jimple.infoflow.memory.reasons.OutOfMemoryReason;
 import soot.jimple.infoflow.memory.reasons.TimeoutReason;
+import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
+import soot.jimple.infoflow.pattern.patterndata.PatternData;
 import soot.jimple.infoflow.problems.BackwardsInfoflowProblem;
 import soot.jimple.infoflow.problems.InfoflowProblem;
 import soot.jimple.infoflow.problems.TaintPropagationResults;
@@ -452,6 +455,14 @@ public class Infoflow extends AbstractInfoflow {
 						logger.error("No sources found, aborting analysis");
 						continue;
 					}
+					{
+						Pattern1Data data1 = PatternDataHelper.v().getPattern1();
+						if (null != data1 && data1.getInvolvedEntrypoints().isEmpty()) {
+							logger.error("Pattern 1 has no involvedentrypoints!!!!");
+							continue;
+						}
+					}
+
 //					if (sinkCount == 0) {
 //						logger.error("No sinks found, aborting analysis");
 //						continue;
@@ -748,6 +759,8 @@ public class Infoflow extends AbstractInfoflow {
 			ex.printStackTrace(pw);
 			results.addException(ex.getClass().getName() + ": " + ex.getMessage() + "\n" + stacktrace.toString());
 			logger.error("Exception during data flow analysis", ex);
+		} finally {
+			PatternDataHelper.v().clear();
 		}
 	}
 

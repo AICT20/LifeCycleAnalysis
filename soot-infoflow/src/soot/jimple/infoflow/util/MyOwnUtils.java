@@ -48,6 +48,11 @@ public class MyOwnUtils {
     }
 
     public static SourceSinkDefinition getOriginalSource(Abstraction abs) {
+        SourceSinkDefinition result = abs.getOriginalDef();
+        if (null != result) {
+            return result;
+        }
+
         while (abs.getSourceContext() == null) {
             Abstraction temp = abs.getPredecessor();
             if (null != temp) {
@@ -56,7 +61,9 @@ public class MyOwnUtils {
                 return null;
             }
         }
-        return abs.getSourceContext().getDefinition();
+        result = abs.getSourceContext().getDefinition();
+        abs.setOriginalDef(result);
+        return result;
     }
 
 
