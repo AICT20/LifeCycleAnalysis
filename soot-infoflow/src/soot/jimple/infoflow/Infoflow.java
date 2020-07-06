@@ -89,10 +89,12 @@ import soot.jimple.infoflow.sourcesSinks.manager.IOneSourceAtATimeManager;
 import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 import soot.jimple.infoflow.threading.DefaultExecutorFactory;
 import soot.jimple.infoflow.threading.IExecutorFactory;
+import soot.jimple.infoflow.util.MyOutputer;
 import soot.jimple.infoflow.util.SootMethodRepresentationParser;
 import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.options.Options;
+import soot.util.MultiMap;
 
 /**
  * main infoflow class which triggers the analysis and offers method to
@@ -296,8 +298,10 @@ public class Infoflow extends AbstractInfoflow {
 				constructCallgraph();
 			}
 
-			if (config.getCallgraphAlgorithm() != CallgraphAlgorithm.OnDemand)
+			if (config.getCallgraphAlgorithm() != CallgraphAlgorithm.OnDemand) {
 				logger.info("Callgraph has {} edges", Scene.v().getCallGraph().size());
+				MyOutputer.getInstance().updateEdgeNums(config.getIndex(), Scene.v().getCallGraph().size());
+			}
 
 			if (!config.isTaintAnalysisEnabled())
 				return;
@@ -457,9 +461,21 @@ public class Infoflow extends AbstractInfoflow {
 					}
 					{
 						Pattern1Data data1 = PatternDataHelper.v().getPattern1();
-						if (null != data1 && data1.getInvolvedEntrypoints().isEmpty()) {
-							logger.error("Pattern 1 has no involvedentrypoints!!!!");
-							continue;
+						if (null != data1) {
+							if (data1.getInvolvedEntrypoints().isEmpty()) {
+								MyOutputer.getInstance().updateInvolvedEntries(config.getIndex(), 0);
+								MyOutputer.getInstance().output();
+								logger.error("Pattern 1 has no involvedentrypoints!!!!");
+								continue;
+							}
+//							} else {
+//								MyOutputer.getInstance().updateInvolvedEntries(config.getIndex(), data1.getInvolvedEntrypoints().size());
+//								MyOutputer.getInstance().output();
+//								logger.info("Pattern 1 has " + data1.getInitialInvolvedEntrypoints().size() + " initial involvedentrypoints!!!!");
+//								logger.info("Pattern 1 has " + data1.getInvolvedEntrypoints().size() + " involvedentrypoints!!!!");
+//								continue;
+//							}
+
 						}
 					}
 
@@ -723,20 +739,36 @@ public class Infoflow extends AbstractInfoflow {
 			if (results == null || results.isEmpty())
 				logger.warn("No results found.");
 			else if (logger.isInfoEnabled()) {
-				for (ResultSinkInfo sink : results.getResults().keySet()) {
-					logger.info("The sink {} in method {} was called with values from the following sources:", sink,
-							iCfg.getMethodOf(sink.getStmt()).getSignature());
-					for (ResultSourceInfo source : results.getResults().get(sink)) {
-						logger.info("- {} in method {}", source, iCfg.getMethodOf(source.getStmt()).getSignature());
-						if (source.getPath() != null) {
+				//下面重新写，按照从source->sink的path来输出
+				for (ResultSourceInfo source : results.getReResults().keySet()) {
+					logger.info("The source {} in method {} was called with values from the following sources:", source,
+							iCfg.getMethodOf(source.getStmt()).getSignature());
+					for (ResultSinkInfo sink : results.getReResults().get(source)) {
+						logger.info("- {} in method {}", sink, iCfg.getMethodOf(sink.getStmt()).getSignature());
+						if (sink.getPath() != null) {
 							logger.info("\ton Path: ");
-							for (Unit p : source.getPath()) {
+							for (Unit p : sink.getPath()) {
 								logger.info("\t -> " + iCfg.getMethodOf(p));
 								logger.info("\t\t -> " + p);
 							}
 						}
 					}
 				}
+
+//				for (ResultSinkInfo sink : results.getResults().keySet()) {
+//					logger.info("The sink {} in method {} was called with values from the following sources:", sink,
+//							iCfg.getMethodOf(sink.getStmt()).getSignature());
+//					for (ResultSourceInfo source : results.getResults().get(sink)) {
+//						logger.info("- {} in method {}", source, iCfg.getMethodOf(source.getStmt()).getSignature());
+//						if (source.getPath() != null) {
+//							logger.info("\ton Path: ");
+//							for (Unit p : source.getPath()) {
+//								logger.info("\t -> " + iCfg.getMethodOf(p));
+//								logger.info("\t\t -> " + p);
+//							}
+//						}
+//					}
+//				}
 			}
 
 			// Gather performance data

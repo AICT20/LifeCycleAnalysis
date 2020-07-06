@@ -12,7 +12,11 @@ import java.util.Set;
 //pattern1 是在onCreate方法中调用finish()函数时将会跳过onStart、onResume、onPause和onStop方法的执行，直接跳到onDestroy
 //TODO 在onStart方法中执行finish()时也会跳过onResume和onPause
 public class Pattern1Data extends PatternData {
-    public Pattern1Data(){super();}
+    private Map<SootClass, String> initialInvolvedEntrypoints = null;
+    public Pattern1Data(){
+        super();
+        initialInvolvedEntrypoints = new HashMap<>();
+    }
 
     public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg) {
 //        seedMethods = searchForSeedMethods(icfg, "void onDestroy()");
@@ -22,10 +26,15 @@ public class Pattern1Data extends PatternData {
         return this.involvedEntrypoints;
     }
 
+    public Map<SootClass, String> getInitialInvolvedEntrypoints(){
+        return this.initialInvolvedEntrypoints;
+    }
+
     //TODO  这里错了！！！ 在同一个Activity， finish()应该既可以在onCreate也可以在onStart中执行
     @Override
     public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalInvocationMap) {
         this.involvedEntrypoints.clear();
+        this.initialInvolvedEntrypoints.clear();
         if (null == totalInvocationMap || totalInvocationMap.isEmpty()) {
             this.involvedEntrypoints = new HashMap<>();
             for (SootClass nowclass : allEntrypoints) {
@@ -41,6 +50,7 @@ public class Pattern1Data extends PatternData {
                     if (invokedm.getSignature().equals(PatternDataConstant.FINISHMETHODSIG)) {
                         SootClass currentClass = keym.getDeclaringClass();
                         this.involvedEntrypoints.put(currentClass, keym.getSubSignature());
+                        this.initialInvolvedEntrypoints.put(currentClass, keym.getSubSignature());
                         //额外的，把它们的所有子类也加上
                         Hierarchy h = Scene.v().getActiveHierarchy();
                         if (currentClass.isInterface()) {

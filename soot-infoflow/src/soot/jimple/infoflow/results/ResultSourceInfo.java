@@ -33,6 +33,11 @@ public class ResultSourceInfo extends AbstractResultSourceSinkInfo {
 		this.pathAPs = pathAPs == null || pathAPs.isEmpty() ? null : pathAPs.toArray(new AccessPath[pathAPs.size()]);
 	}
 
+	public ResultSourceInfo cloneWithoutPath() {
+		ResultSourceInfo newOne = new ResultSourceInfo(definition, accessPath, stmt, userData, null, null);
+		return newOne;
+	}
+
 	public Stmt[] getPath() {
 		return this.path;
 	}

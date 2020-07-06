@@ -236,19 +236,31 @@ public class InfoflowResultsSerializer {
 	 * @throws XMLStreamException Thrown if the XML data cannot be written
 	 */
 	protected void writeDataFlows(InfoflowResults results, XMLStreamWriter writer) throws XMLStreamException {
-		for (ResultSinkInfo sink : results.getResults().keySet()) {
+		//lifecycle-add 修改成source->sink
+//		for (ResultSinkInfo sink : results.getResults().keySet()) {
+//			writer.writeStartElement(XmlConstants.Tags.result);
+//			writeSinkInfo(sink, writer);
+//
+//			// Write out the sources
+//			writer.writeStartElement(XmlConstants.Tags.sources);
+//			for (ResultSourceInfo src : results.getResults().get(sink))
+//				writeSourceInfo(src, writer);
+//			writer.writeEndElement();
+//
+//			writer.writeEndElement();
+//		}
+		for (ResultSourceInfo source : results.getReResults().keySet()) {
 			writer.writeStartElement(XmlConstants.Tags.result);
-			writeSinkInfo(sink, writer);
+			writeSourceInfo(source, writer);
 
 			// Write out the sources
-			writer.writeStartElement(XmlConstants.Tags.sources);
-			for (ResultSourceInfo src : results.getResults().get(sink))
-				writeSourceInfo(src, writer);
+			writer.writeStartElement(XmlConstants.Tags.sinks);
+			for (ResultSinkInfo src : results.getReResults().get(source))
+				writeSinkInfoWithPath(src, writer);
 			writer.writeEndElement();
 
 			writer.writeEndElement();
 		}
-
 	}
 
 	/**
@@ -286,6 +298,44 @@ public class InfoflowResultsSerializer {
 				}
 
 				AccessPath curAP = source.getPathAccessPaths()[i];
+				writeAccessPath(curAP, writer);
+
+				writer.writeEndElement();
+			}
+			writer.writeEndElement();
+		}
+
+		writer.writeEndElement();
+	}
+
+	private void writeSinkInfoWithPath(ResultSinkInfo sink, XMLStreamWriter writer) throws XMLStreamException {
+		writer.writeStartElement(XmlConstants.Tags.sink);
+		writer.writeAttribute(XmlConstants.Attributes.statement, sink.getStmt().toString());
+		if (sink.getDefinition().getCategory() != null)
+			writer.writeAttribute(XmlConstants.Attributes.category,
+					sink.getDefinition().getCategory().getHumanReadableDescription());
+		if (icfg != null) {
+			writer.writeAttribute(XmlConstants.Attributes.method, icfg.getMethodOf(sink.getStmt()).getSignature());
+//			writer.writeAttribute(XmlConstants.Attributes.methodbody, icfg.getMethodOf(source.getStmt()).getActiveBody().toString());
+		}
+
+//		writeAdditionalSourceInfo(sink, writer);
+		writeAccessPath(sink.getAccessPath(), writer);
+
+		if (serializeTaintPath && sink.getPath() != null) {
+			writer.writeStartElement(XmlConstants.Tags.taintPath);
+			for (int i = 0; i < sink.getPath().length; i++) {
+				writer.writeStartElement(XmlConstants.Tags.pathElement);
+
+				Stmt curStmt = sink.getPath()[i];
+				writer.writeAttribute(XmlConstants.Attributes.statement, curStmt.toString());
+
+				if (icfg != null) {
+					writer.writeAttribute(XmlConstants.Attributes.method, icfg.getMethodOf(curStmt).getSignature());
+//					writer.writeAttribute(XmlConstants.Attributes.methodbody, icfg.getMethodOf(curStmt).getActiveBody().toString());
+				}
+
+				AccessPath curAP = sink.getPathAccessPaths()[i];
 				writeAccessPath(curAP, writer);
 
 				writer.writeEndElement();

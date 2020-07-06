@@ -20,6 +20,7 @@ class XmlConstants {
 		public static final String performanceEntry = "PerformanceEntry";
 
 		public static final String sink = "Sink";
+		public static final String sinks = "Sinks";
 		public static final String accessPath = "AccessPath";
 
 		public static final String fields = "Fields";

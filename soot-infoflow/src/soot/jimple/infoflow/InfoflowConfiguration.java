@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class InfoflowConfiguration {
+	protected int appindex = -1;
 
 	protected final static Logger logger = LoggerFactory.getLogger(InfoflowConfiguration.class);
 
@@ -19,6 +20,14 @@ public class InfoflowConfiguration {
 	 */
 	public enum CallgraphAlgorithm {
 		AutomaticSelection, CHA, VTA, RTA, SPARK, GEOM, OnDemand
+	}
+
+	public int getIndex(){
+		return appindex;
+	}
+
+	public void setIndex(int index){
+		this.appindex = index;
 	}
 
 	/**

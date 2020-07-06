@@ -10,7 +10,7 @@ import java.util.*;
 
 public class PatternDataHelper implements PatternInterface {
     public static String[] testPattern = new String[]{"1"};
-    public static boolean adaptAllEntrypoints = true;
+    public static boolean adaptAllEntrypoints = false;
 
     String[] tags = null;
     Map<Integer, PatternData> currentPatterns = null;

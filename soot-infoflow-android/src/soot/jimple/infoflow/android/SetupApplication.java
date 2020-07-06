@@ -1406,7 +1406,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			processEntryPoint(sourcesAndSinks, resultAggregator, -1, null);
 
 		// Write the results to disk if requested
-		serializeResults(resultAggregator.getAggregatedResults(), resultAggregator.getLastICFG());
+		serializeResults(resultAggregator.getAggregatedResults(), resultAggregator.getLastICFG());//生成xml文件的入口
 
 		// We return the aggregated results
 		this.infoflow = null;
@@ -1479,7 +1479,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 
 		// Print out the found results
 		{
-			int resCount = resultAggregator.getLastResults() == null ? 0 : resultAggregator.getLastResults().size();
+			int resCount = resultAggregator.getLastResults() == null ? 0 : resultAggregator.getLastResults().resize();
 			if (config.getOneComponentAtATime())
 				logger.info("Found {} leaks for component {}", resCount, entrypoint);
 			else

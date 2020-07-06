@@ -40,6 +40,7 @@ import soot.jimple.infoflow.methodSummary.taintWrappers.TaintWrapperFactory;
 import soot.jimple.infoflow.taintWrappers.EasyTaintWrapper;
 import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
 import soot.jimple.infoflow.taintWrappers.TaintWrapperSet;
+import soot.jimple.infoflow.util.MyOutputer;
 import soot.util.HashMultiMap;
 import soot.util.MultiMap;
 
@@ -232,31 +233,37 @@ public class MainClass {
 	}
 
 	public static void main(String[] args) throws Exception {
-		String newAnalysisProject_home = "C:\\Users\\lcanalyser\\Documents\\2019NewAnalysisProject";
-		String sdkpath = "C:\\Users\\lcanalyser\\Documents\\Sdk";
-		String appshomepath = "C:\\Users\\lcanalyser\\Documents\\apks_pattern_1_2020-06-28";
+		String newAnalysisProject_home = "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject";
+		String sdkpath = "C:\\Users\\luyifei\\AppData\\Local\\Android\\Sdk";
+		String appshomepath = "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\apks_pattern_1_2020-06-28";
 		File appshomefolder = new File(appshomepath);
-		int appindex = 1;
-		File appfile = null;
-		for (File currentFile : appshomefolder.listFiles()) {
-			if (currentFile.getName().startsWith(appindex + "_")) {
-				appfile = currentFile;
-				break;
-			}
-		}
-		String[] test = {"-a", appfile.getAbsolutePath(),
-				"-p", sdkpath + File.separator + "platforms\\android-29\\android.jar",
-				"-s", newAnalysisProject_home + File.separator + "SourcesAndSinks_lyf_resourceleak.txt",
-				"-o",  newAnalysisProject_home + File.separator + "outputfolder",
-				"-pr", "PRECISE",   //构建paths时提供完整的路径
+		File outputfile = new File("C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\outputfolder\\output_log.txt");
+		MyOutputer.getInstance().setOutputFile(outputfile);
+//			int appindex = cindex;
+//			MyOutputer.getInstance().updateIndex(cindex);
+//			File appfile = null;
+//			for (File currentFile : appshomefolder.listFiles()) {
+//				if (currentFile.getName().startsWith(appindex + "_")) {
+//					appfile = currentFile;
+//					break;
+//				}
+//			}
+//			String[] test = {"-a", appshomepath,
+			String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\GmsCore.apk",
+					"-p", sdkpath + File.separator + "platforms\\android-29\\android.jar",
+					"-s", newAnalysisProject_home + File.separator + "SourcesAndSinks_lyf_resourceleak.txt",
+					"-o",  newAnalysisProject_home + File.separator + "outputfolder",
+					"-pr", "PRECISE",   //构建paths时提供完整的路径
+//					"-ps", //决定是不是把所有的path都显示出来
 //				"-im", "iccta_gmscore_1.txt"  //增加ICC
 //				"-os", //内存不够， 进行onesourceatatime
-				"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
+//					"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
 //				"-ds", "FLOWINSENSITIVE",
 //				"-pa", "CONTEXTINSENSITIVE"
-				};
-		MainClass main = new MainClass();
-		main.run(test);
+			};
+			MainClass main = new MainClass();
+			main.run(test);
+
 	}
 
 	private void run(String[] args) throws Exception {
@@ -343,6 +350,11 @@ public class MainClass {
 				if (outputFile != null) {
 					if (apksToAnalyze.size() > 1 || (outputFile.exists() && outputFile.isDirectory())) {
 						String outputFileName = apkFile.getName().replace(".apk", ".xml");
+						//lifecycle-add
+//						String currentIndexstr = outputFileName.substring(0, outputFileName.indexOf('_'));
+//						int currentIndex = Integer.parseInt(currentIndexstr);
+//						config.setIndex(currentIndex);
+
 						File curOutputFile = new File(outputFile, outputFileName);
 						config.getAnalysisFileConfig().setOutputFile(curOutputFile.getCanonicalPath());
 
