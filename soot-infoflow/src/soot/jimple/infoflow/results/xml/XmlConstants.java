@@ -16,6 +16,10 @@ class XmlConstants {
 		public static final String results = "Results";
 		public static final String result = "Result";
 
+		public static final String exception = "Exception";
+		public static final String exceptionStmt = "Stmt";
+
+
 		public static final String performanceData = "PerformanceData";
 		public static final String performanceEntry = "PerformanceEntry";
 
