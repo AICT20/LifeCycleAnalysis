@@ -123,6 +123,7 @@ public class MainClass {
 
 	//Lifecycle-add 是否只进行component内部的resourceleak计算
 	private static final String OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT = "lc_iac";
+	private static final String OPTION_LIFECYCLANALYSIS_ONLYINCLUDPATTERNRELEVANTCOMPONENT = "lc_oprc";
 
 	private MainClass() {
 		initializeCommandLineOptions();
@@ -230,6 +231,8 @@ public class MainClass {
 				"Analyze the full frameworks together with the app without any optimizations");
 		options.addOption(OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT, "lifecycle_intracomponent", false,
 				"In our LifeCycleAnalysis, only intra-component resource leak is considered");
+		options.addOption(OPTION_LIFECYCLANALYSIS_ONLYINCLUDPATTERNRELEVANTCOMPONENT, "", false,
+				"One step more, in our LifeCycleAnalysis, resource leak is considered in only pattern relevant components");
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -249,7 +252,7 @@ public class MainClass {
 //				}
 //			}
 //			String[] test = {"-a", appshomepath,
-			String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\GmsCore.apk",
+			String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\talon-twitter-holo.apk",
 					"-p", sdkpath + File.separator + "platforms\\android-29\\android.jar",
 					"-s", newAnalysisProject_home + File.separator + "SourcesAndSinks_lyf_resourceleak.txt",
 					"-o",  newAnalysisProject_home + File.separator + "outputfolder",
@@ -257,7 +260,7 @@ public class MainClass {
 //					"-ps", //决定是不是把所有的path都显示出来
 //				"-im", "iccta_gmscore_1.txt"  //增加ICC
 //				"-os", //内存不够， 进行onesourceatatime
-//					"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
+					"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
 //				"-ds", "FLOWINSENSITIVE",
 //				"-pa", "CONTEXTINSENSITIVE"
 			};
@@ -855,6 +858,9 @@ public class MainClass {
 
 		if (cmd.hasOption(OPTION_LIFECYCLEANALYSIS_INTRACOMPONENT)) {
 			config.setLCIntraComponent(true);
+		}
+		if (cmd.hasOption(OPTION_LIFECYCLANALYSIS_ONLYINCLUDPATTERNRELEVANTCOMPONENT)) {
+			config.setLCOnlyPatternRelevantComponent(true);
 		}
 	}
 

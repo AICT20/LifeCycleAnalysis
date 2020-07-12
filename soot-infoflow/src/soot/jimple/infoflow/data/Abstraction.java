@@ -21,6 +21,8 @@ import soot.jimple.IfStmt;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.collect.AtomicBitSet;
+import soot.jimple.infoflow.pattern.patterndata.PatternData;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG.UnitContainer;
 import soot.jimple.infoflow.solver.fastSolver.FastSolverLinkedNode;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
@@ -56,6 +58,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected boolean isfinishing = false;
 	//新一轮调整
 	protected SourceSinkDefinition tempdef = null;//这里的tempdef不进行hash以及equals的比较
+	protected Set<String> tagnames = null;//用来记录当前的source的来源entrypoints
 	public SourceSinkDefinition getOriginalDef() {
 		return tempdef;
 	}
@@ -203,6 +206,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 //			dependsOnCutAP = original.dependsOnCutAP;
 			tempdef = original.tempdef;
 			isImplicit = original.isImplicit;
+			tagnames = original.tagnames;
 		}
 		accessPath = p;
 		neighbors = null;
@@ -255,6 +259,7 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		return abs;
 	}
 
+
 	public Abstraction deriveNewAbstractionOnIfKill(IfStmt killStmt, boolean isjump) {
 		if (null != this.ifkillStmts && this.ifkillStmts.contains(new Pair<>(killStmt, isjump))) {
 			return this;
@@ -298,6 +303,52 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		abs.currentStmt = callorreturnStmt;
 		abs.sourceContext = null;
 		return abs;
+	}
+
+	//lifecycle-add
+	public Abstraction deriveNewAbstractionWithNewTagSets(Set<String> newtagnames) {
+		if (newtagnames.isEmpty()) {
+			//一般不会出现空的情况
+			return this;
+		}
+		for (String tag : newtagnames) {//如果是不相关的component的生命周期函数，直接去掉
+			if (tag.equals(PatternDataConstant.LCMETHODNOTINSUFFIX)) {
+				return null;
+			}
+		}
+
+		if (this.tagnames == null || this.tagnames.isEmpty()) {
+			Abstraction abs = clone();
+			abs.sourceContext = null;
+			abs.currentStmt = this.currentStmt;
+			abs.tagnames = newtagnames;
+			return abs;
+		}
+		boolean isAllContained = true;//指包含当前method的所有tag
+		boolean isContainingAll = true;//指当前method的tag包含当前Abstraction的所有tag
+		for (String cn : this.tagnames) {
+			if (!newtagnames.contains(cn)) {
+				isAllContained = false;
+				break;
+			}
+		}
+		for (String cn : newtagnames) {
+			if (!this.tagnames.contains(cn)) {
+				isContainingAll = false;
+				break;
+			}
+		}
+		if (!isAllContained && !isContainingAll) {
+			return null;
+		} else if (isAllContained) {
+			return this;
+		} else {
+			Abstraction abs = clone();
+			abs.sourceContext = null;
+			abs.currentStmt = this.currentStmt;
+			abs.tagnames = newtagnames;
+			return abs;
+		}
 	}
 
 	public Abstraction deriveNewAbstraction(AccessPath p, Stmt currentStmt) {

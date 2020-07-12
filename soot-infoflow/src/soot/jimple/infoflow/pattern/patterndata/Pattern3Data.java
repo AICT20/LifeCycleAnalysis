@@ -34,6 +34,21 @@ public class Pattern3Data extends PatternData {
 
     }
 
+    @Override
+    public Set<SootClass> getEntrypoints() {
+        Set<SootClass> allEntrypoints = new HashSet<>();
+        if (null != v4Fragments) {
+            allEntrypoints.addAll(v4Fragments.keySet());
+        }
+        if (null != androidFragments) {
+            allEntrypoints.addAll(androidFragments.keySet());
+        }
+        if (null != androidxFragments) {
+            allEntrypoints.addAll(androidxFragments.keySet());
+        }
+        return allEntrypoints;
+    }
+
     public void updateFragments(SootClass activity, SootClass fragment, String typestr) {
         Map<SootClass, Set<SootClass>> insertMap = null;
         if (typestr.equalsIgnoreCase("v4")) {
@@ -65,4 +80,10 @@ public class Pattern3Data extends PatternData {
         return results;
     }
 
+    public void clear() {
+        this.v4Fragments.clear();
+        this.androidFragments.clear();
+        this.androidxFragments.clear();
+        this.involvedEntrypoints.clear();
+    }
 }

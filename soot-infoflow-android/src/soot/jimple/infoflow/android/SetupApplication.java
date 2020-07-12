@@ -751,6 +751,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			} else {
 				PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
 			}
+			PatternDataHelper.v().updateEntryLifeCycleMethodsTags(entrypoints);
 			createMainMethod(component);
 //			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
 			releaseCallgraph();

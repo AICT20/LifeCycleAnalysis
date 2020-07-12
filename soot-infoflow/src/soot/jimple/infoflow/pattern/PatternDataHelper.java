@@ -4,8 +4,10 @@ import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.pattern.patterndata.*;
+import soot.jimple.infoflow.pattern.patterntag.LCLifeCycleMethodTag;
+import soot.jimple.infoflow.resourceleak.AndroidEntryPointConstantsCopy;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
-
+import soot.tagkit.Tag;
 import java.util.*;
 
 public class PatternDataHelper implements PatternInterface {
@@ -42,9 +44,59 @@ public class PatternDataHelper implements PatternInterface {
         for (PatternData pattern : currentPatterns.values()) {
             pattern.updateInvolvedEntrypoints(allEntrypoints, methodTotalInvokeMap);
         }
-
-
     }
+
+    @Override
+    public Set<SootClass> getEntrypoints() {
+        Set<SootClass> allEntrypoints = new HashSet<>();
+        for (PatternData pattern : currentPatterns.values()) {
+            allEntrypoints.addAll(pattern.getEntrypoints());
+        }
+        return allEntrypoints;
+    }
+
+    private Set<Tag> allLCMethodTags = null;
+    //这里更新所有Component的lifecycle函数的tag
+    public void updateEntryLifeCycleMethodsTags(Set<SootClass> allentrypoints) {
+        allLCMethodTags = new HashSet();
+        Set<SootClass> allInvolvedEntrypoints = getEntrypoints();
+        Map<Tag, Set<SootClass>> tags2entrypoints = new HashMap<>();//注意，完全有可能一个sootclass包含多个tag
+        //
+        total: for (SootClass currentE : allInvolvedEntrypoints) {
+            List<SootClass> subs = Scene.v().getActiveHierarchy().getSubclassesOf(currentE);
+            for (SootClass temp : allInvolvedEntrypoints) {
+                if (subs.contains(temp) && temp != currentE) {
+                    continue total;
+                }
+            }
+            //能到这里说明它在entrypoints中没有子类了，它是最小的一个
+            LCLifeCycleMethodTag newTag = new LCLifeCycleMethodTag(currentE.getName());
+            Set<SootClass> allSupers = new HashSet<>();
+            allSupers.add(currentE);
+            allSupers.addAll(Scene.v().getActiveHierarchy().getSuperclassesOf(currentE));
+            tags2entrypoints.put(newTag, allSupers);
+        }
+
+        Set<SootClass> notInvolvedEntrypoints = new HashSet<>(allentrypoints);
+        notInvolvedEntrypoints.removeAll(allInvolvedEntrypoints);
+        tags2entrypoints.put(new LCLifeCycleMethodTag("none"), notInvolvedEntrypoints);
+
+        allLCMethodTags = tags2entrypoints.keySet();
+
+        for (Tag keytak : tags2entrypoints.keySet()) {
+            Set<SootClass> classes = tags2entrypoints.get(keytak);
+            for (SootClass currentClass : classes) {
+                for (String subsig : AndroidEntryPointConstantsCopy.getAllLCMethods()) {
+                    SootMethod m = currentClass.getMethodUnsafe(subsig);
+                    if (null != m && !m.hasTag(keytak.getName())) {
+                        m.addTag(keytak);
+                    }
+                }
+            }
+        }
+        System.out.println();
+    }
+
 
     public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints) {
         for (PatternData pattern : currentPatterns.values()) {
@@ -160,6 +212,7 @@ public class PatternDataHelper implements PatternInterface {
     public void clear() {
         this.methodDirectInvokeMap.clear();
         this.methodTotalInvokeMap.clear();
+        PatternDataConstant.clear();
         for (PatternData pattern : currentPatterns.values()) {
             pattern.clear();
         }

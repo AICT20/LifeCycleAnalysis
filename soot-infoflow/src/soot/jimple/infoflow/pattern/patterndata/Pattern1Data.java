@@ -75,6 +75,16 @@ public class Pattern1Data extends PatternData {
 
     }
 
+    @Override
+    public Set<SootClass> getEntrypoints() {
+        return involvedEntrypoints.keySet();
+    }
+
+    public void clear() {
+        this.involvedEntrypoints.clear();
+        this.initialInvolvedEntrypoints.clear();
+    }
+
 //    @Override
 //    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
 //        Body b = dummyMainMethod.getActiveBody();

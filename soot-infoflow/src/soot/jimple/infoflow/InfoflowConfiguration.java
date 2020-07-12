@@ -359,7 +359,7 @@ public class InfoflowConfiguration {
 		 * longer than this limit, the path reconstruction is aborted and the respective
 		 * path is skipped.
 		 * 
-		 * @param maxPathLenfgth The maximum length of a taint propagtation path3
+//		 * @param maxPathLenfgth The maximum length of a taint propagtation path3
 		 */
 		public void setMaxPathLength(int maxPathLength) {
 			this.maxPathLength = maxPathLength;
@@ -822,7 +822,7 @@ public class InfoflowConfiguration {
 		 * Gets the maximum depth of the access paths. All paths will be truncated if
 		 * they exceed the given size.
 		 * 
-		 * @param accessPathLength the maximum value of an access path.
+//		 * @param accessPathLength the maximum value of an access path.
 		 */
 		public int getAccessPathLength() {
 			return accessPathLength;
@@ -975,6 +975,8 @@ public class InfoflowConfiguration {
 	private boolean oneSourceAtATime = false;
 
 	private boolean intraComponent = false;
+	private boolean onlyPatternRelevantComponent = false;
+
 
 	/**
 	 * Merges the given configuration options into this configuration object
@@ -1429,7 +1431,7 @@ public class InfoflowConfiguration {
 	 * Sets whether and how FlowDroid shall eliminate irrelevant code before running
 	 * the taint propagation
 	 * 
-	 * @param Mode the mode of dead and irrelevant code eliminiation to be used
+//	 * @param Mode the mode of dead and irrelevant code eliminiation to be used
 	 */
 	public void setCodeEliminationMode(CodeEliminationMode mode) {
 		this.codeEliminationMode = mode;
@@ -1596,8 +1598,11 @@ public class InfoflowConfiguration {
 	}
 
 	public boolean isLCIntraComponent(){return this.intraComponent;}
+	public boolean isLCOnlyPatternRelevantComponent(){return this.onlyPatternRelevantComponent;}
+
 
 	public void setLCIntraComponent(boolean intraComponent) {this.intraComponent = intraComponent;}
+	public void setLCOnlyPatternRelevantComponent(boolean onlyPatternRelevantComponent) {this.onlyPatternRelevantComponent = onlyPatternRelevantComponent;}
 	/**
 	 * Gets the configuration for dealing with the paths between source and sinks
 	 * 

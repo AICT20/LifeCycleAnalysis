@@ -11,6 +11,7 @@ import soot.jimple.Jimple;
 import soot.jimple.NopStmt;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.entryPointCreators.BaseEntryPointCreator;
+import soot.jimple.infoflow.pattern.patterntag.LCLifeCycleMethodTag;
 import soot.jimple.infoflow.util.SystemClassHandler;
 
 public abstract class AbstractAndroidEntryPointCreator extends BaseEntryPointCreator {

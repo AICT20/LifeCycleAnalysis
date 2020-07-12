@@ -3,6 +3,8 @@ package soot.jimple.infoflow.resourceleak;
 import soot.Scene;
 import soot.SootClass;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ResourceLeakConstants {
@@ -34,4 +36,6 @@ public class ResourceLeakConstants {
         }
         return Scene.v().getActiveHierarchy().isClassSubclassOf(testone, scService);
     }
+
+
 }

@@ -69,6 +69,8 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 
 	protected final TaintPropagationResults results;
 
+	protected boolean checkingLMethod = true;
+
 	public InfoflowProblem(InfoflowManager manager, Abstraction zeroValue,
 						   IPropagationRuleManagerFactory ruleManagerFactory) {
 		super(manager);
@@ -459,6 +461,13 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 //							}
 							source = source.getActiveCopy();
 						}
+						if (checkingLMethod) {
+							Set<String> newTagnames = PatternDataConstant.getTagnames(dest);
+							source = source.deriveNewAbstractionWithNewTagSets(newTagnames);
+							if (null == source) {
+								return null;
+							}
+						}
 
 						ByReferenceBoolean killAll = new ByReferenceBoolean();
 						Set<Abstraction> res = propagationRules.applyCallFlowFunction(d1, source, stmt, dest, killAll);
@@ -577,6 +586,14 @@ public class InfoflowProblem extends AbstractInfoflowProblem {
 						//lifecycle-add 针对Pattern1的修正
 						if (exitStmt.hasTag(LCExitFinishTag.TAG_NAME) && PatternDataHelper.v().hasPattern1()) {
 							newSource = newSource.deriveExitFinishingAbstraction((Stmt)exitStmt);
+						}
+
+						if (checkingLMethod) {
+							Set<String> newTagnames = PatternDataConstant.getTagnames(callee);
+							source = source.deriveNewAbstractionWithNewTagSets(newTagnames);
+							if (null == source) {
+								return null;
+							}
 						}
 
 						ByReferenceBoolean killAll = new ByReferenceBoolean();

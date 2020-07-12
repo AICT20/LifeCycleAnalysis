@@ -61,9 +61,6 @@ public abstract class PatternData implements PatternInterface{
         return seedMethods;
     }
 
-    public void clear() {
-        this.involvedEntrypoints.clear();
-    }
 
     public String getFinishLocation(SootClass givenclass) {
         return this.involvedEntrypoints.get(givenclass);

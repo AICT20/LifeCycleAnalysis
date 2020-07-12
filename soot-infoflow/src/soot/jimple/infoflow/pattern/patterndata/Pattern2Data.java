@@ -47,12 +47,24 @@ public class Pattern2Data extends PatternData {
 
     }
 
+    @Override
+    public Set<SootClass> getEntrypoints() {
+        return involvedEntrypoints.keySet();
+    }
+
     public int getMinSdk() {
         return this.getMinSdk();
     }
 
     public int getTargetSdk() {
         return this.getTargetSdk();
+    }
+
+    public void clear() {
+        targetSdk = -1;
+        minSdk = -1;
+        shouldCheck = false;
+        this.involvedEntrypoints.clear();
     }
 
 }
