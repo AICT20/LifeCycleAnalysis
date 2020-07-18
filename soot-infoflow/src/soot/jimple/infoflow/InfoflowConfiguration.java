@@ -971,7 +971,7 @@ public class InfoflowConfiguration {
 	private boolean taintAnalysisEnabled = true;
 	private boolean incrementalResultReporting = false;
 	private long dataFlowTimeout = 0;
-	private double memoryThreshold = 0.8d; //原本是0.9 这里改一下，改成0.8试试会不会好一些
+	private double memoryThreshold = 0.5d; //原本是0.9 这里改一下，改成0.8试试会不会好一些
 	private boolean oneSourceAtATime = false;
 
 	private boolean intraComponent = false;

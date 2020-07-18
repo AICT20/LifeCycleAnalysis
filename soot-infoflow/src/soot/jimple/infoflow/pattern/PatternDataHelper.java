@@ -3,6 +3,7 @@ package soot.jimple.infoflow.pattern;
 import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
+import soot.jimple.infoflow.cfg.DefaultBiDiICFGFactory;
 import soot.jimple.infoflow.pattern.patterndata.*;
 import soot.jimple.infoflow.pattern.patterntag.LCLifeCycleMethodTag;
 import soot.jimple.infoflow.resourceleak.AndroidEntryPointConstantsCopy;
@@ -17,33 +18,30 @@ public class PatternDataHelper implements PatternInterface {
     String[] tags = null;
     Map<Integer, PatternData> currentPatterns = null;
 
-    private Map<SootMethod, Set<SootMethod>> methodDirectInvokeMap = null;
-    private Map<SootMethod, Set<SootMethod>> methodTotalInvokeMap = null;
 
     private static PatternDataHelper instance = new PatternDataHelper();
     private PatternDataHelper() {
         this.currentPatterns = new HashMap<>();
-        this.methodDirectInvokeMap = new HashMap<>();
-        this.methodTotalInvokeMap = new HashMap<>();
     }
     public static PatternDataHelper v() {
         return instance;
     }
 
+    //2020.7.12修正可达性算法——》不再更新全部calltrace，只找从finish开始的
+
     @Override
-    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalinvocationmap) {
-        if (null == totalinvocationmap) {
-            //先构建直接调用关系
-            buildDirectInvokeMap(allEntrypoints);
-            //再构建完全调用关系
-            buildTotalInvokeMap();
-        } else {
-            methodTotalInvokeMap = totalinvocationmap;
+    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints,  IInfoflowCFG icfg) {
+        IInfoflowCFG nowicfg = icfg;
+        if (null == nowicfg) {
+            DefaultBiDiICFGFactory fa = new DefaultBiDiICFGFactory();
+            fa.setIsAndroid(true);
+            nowicfg = fa.buildBiDirICFG(null, true);
         }
 
         for (PatternData pattern : currentPatterns.values()) {
-            pattern.updateInvolvedEntrypoints(allEntrypoints, methodTotalInvokeMap);
+            pattern.updateInvolvedEntrypoints(allEntrypoints, nowicfg);
         }
+        nowicfg.purge();
     }
 
     @Override
@@ -107,111 +105,109 @@ public class PatternDataHelper implements PatternInterface {
 
 
 
-    private void buildTotalInvokeMap() {
-        for (SootMethod m : methodDirectInvokeMap.keySet()) {
-            Stack<SootMethod> currentMethods = new Stack<>();
-            Set<SootMethod> allMethods = new HashSet<>(methodDirectInvokeMap.get(m));
-            currentMethods.addAll(methodDirectInvokeMap.get(m));
-            while (!currentMethods.isEmpty()) {
-                SootMethod currentMethod = currentMethods.pop();
-                Set<SootMethod> currentInvokeMethods = methodDirectInvokeMap.get(currentMethod);
-                if (null != currentInvokeMethods && !currentInvokeMethods.isEmpty()) {
-                    for (SootMethod innerM : currentInvokeMethods) {
-                        if (!allMethods.contains(innerM)) {
-                            allMethods.add(innerM);
-                            currentMethods.add(innerM);
-                        }
-                    }
-                }
-            }
-            methodTotalInvokeMap.put(m, allMethods);
-        }
-    }
+//    private void buildTotalInvokeMap() {
+//        for (SootMethod m : methodDirectInvokeMap.keySet()) {
+//            Stack<SootMethod> currentMethods = new Stack<>();
+//            Set<SootMethod> allMethods = new HashSet<>(methodDirectInvokeMap.get(m));
+//            currentMethods.addAll(methodDirectInvokeMap.get(m));
+//            while (!currentMethods.isEmpty()) {
+//                SootMethod currentMethod = currentMethods.pop();
+//                Set<SootMethod> currentInvokeMethods = methodDirectInvokeMap.get(currentMethod);
+//                if (null != currentInvokeMethods && !currentInvokeMethods.isEmpty()) {
+//                    for (SootMethod innerM : currentInvokeMethods) {
+//                        if (!allMethods.contains(innerM)) {
+//                            allMethods.add(innerM);
+//                            currentMethods.add(innerM);
+//                        }
+//                    }
+//                }
+//            }
+//            methodTotalInvokeMap.put(m, allMethods);
+//        }
+//    }
+//
+//    private void buildDirectInvokeMap(Set<SootClass> allEntrypoints) {
+//        Stack<SootMethod> currentMethods = new Stack<>();
+//        Set<SootMethod> allMethods = new HashSet<>();
+//        for (SootClass c : allEntrypoints) {
+//            for (SootMethod m : c.getMethods()) {
+//                if (m.hasActiveBody()) {
+//                    currentMethods.add(m);
+//                    allMethods.add(m);
+//                }
+//            }
+//        }
+//
+//        while (!currentMethods.isEmpty()){
+//            SootMethod m = currentMethods.pop();
+//            Set<SootMethod> invokedMethods = getAllInvokedMethodsInGivenMethod(m);
+//            Set<SootMethod> allInvokedMethods = methodDirectInvokeMap.get(m);
+//            if (null == allInvokedMethods) {
+//                allInvokedMethods = new HashSet<>();
+//                methodDirectInvokeMap.put(m, allInvokedMethods);
+//            }
+//            allInvokedMethods.addAll(invokedMethods);
+//            for (SootMethod innerM : invokedMethods) {
+//                if (!allMethods.contains(innerM)) {
+//                    allMethods.add(innerM);
+//                    currentMethods.push(innerM);
+//                }
+//            }
+//        }
+//    }
 
-    private void buildDirectInvokeMap(Set<SootClass> allEntrypoints) {
-        Stack<SootMethod> currentMethods = new Stack<>();
-        Set<SootMethod> allMethods = new HashSet<>();
-        for (SootClass c : allEntrypoints) {
-            for (SootMethod m : c.getMethods()) {
-                if (m.hasActiveBody()) {
-                    currentMethods.add(m);
-                    allMethods.add(m);
-                }
-            }
-        }
-
-        while (!currentMethods.isEmpty()){
-            SootMethod m = currentMethods.pop();
-            Set<SootMethod> invokedMethods = getAllInvokedMethodsInGivenMethod(m);
-            Set<SootMethod> allInvokedMethods = methodDirectInvokeMap.get(m);
-            if (null == allInvokedMethods) {
-                allInvokedMethods = new HashSet<>();
-                methodDirectInvokeMap.put(m, allInvokedMethods);
-            }
-            allInvokedMethods.addAll(invokedMethods);
-            for (SootMethod innerM : invokedMethods) {
-                if (!allMethods.contains(innerM)) {
-                    allMethods.add(innerM);
-                    currentMethods.push(innerM);
-                }
-            }
-        }
-    }
-
-    private Set<SootMethod> getAllInvokedMethodsInGivenMethod(SootMethod givenM) {
-        Set<SootMethod> returnMethods = new HashSet<>();
-        Body b = null;
-        try {
-            b = givenM.getActiveBody();
-        } catch (Exception e) {
-            return returnMethods;
-        }
-
-        for (Unit u : b.getUnits()) {
-            if (u instanceof Stmt && ((Stmt)u).containsInvokeExpr()) {
-                InvokeExpr exp = ((Stmt) u).getInvokeExpr();
-                SootMethod innerM = exp.getMethod();
-                returnMethods.add(innerM);
-                //这里还要搞个多态
-                addPolymorphicMethods(returnMethods, innerM);
-            }
-        }
-        return returnMethods;
-    }
-
-    private void addPolymorphicMethods(Set<SootMethod> results, SootMethod givenInnerM) {
-        SootClass currentClass = givenInnerM.getDeclaringClass();
-        Set<SootClass> allSubClass = new HashSet<>();
-        Hierarchy h = Scene.v().getActiveHierarchy();
-        if (currentClass.isInterface()) {
-            try {
-                allSubClass.addAll(h.getImplementersOf(currentClass));
-            } catch (NullPointerException e) {
-            }
-            for (SootClass superInterface : h.getSubinterfacesOf(currentClass)) {
-                allSubClass.addAll(h.getImplementersOf(superInterface));
-            }
-        } else if (currentClass.isConcrete() || currentClass.isAbstract()) {
-            allSubClass.addAll(h.getSubclassesOf(currentClass));
-        }
-        if (allSubClass.isEmpty()){
-            return;
-        }
-        String subsig = givenInnerM.getSubSignature();
-        for (SootClass nowSubClass : allSubClass) {
-            SootMethod m = nowSubClass.getMethodUnsafe(subsig);
-            if (null != m) {
-                results.add(m);
-            }
-        }
-
-    }
+//    private Set<SootMethod> getAllInvokedMethodsInGivenMethod(SootMethod givenM) {
+//        Set<SootMethod> returnMethods = new HashSet<>();
+//        Body b = null;
+//        try {
+//            b = givenM.getActiveBody();
+//        } catch (Exception e) {
+//            return returnMethods;
+//        }
+//
+//        for (Unit u : b.getUnits()) {
+//            if (u instanceof Stmt && ((Stmt)u).containsInvokeExpr()) {
+//                InvokeExpr exp = ((Stmt) u).getInvokeExpr();
+//                SootMethod innerM = exp.getMethod();
+//                returnMethods.add(innerM);
+//                //这里还要搞个多态
+//                addPolymorphicMethods(returnMethods, innerM);
+//            }
+//        }
+//        return returnMethods;
+//    }
+//
+//    private void addPolymorphicMethods(Set<SootMethod> results, SootMethod givenInnerM) {
+//        SootClass currentClass = givenInnerM.getDeclaringClass();
+//        Set<SootClass> allSubClass = new HashSet<>();
+//        Hierarchy h = Scene.v().getActiveHierarchy();
+//        if (currentClass.isInterface()) {
+//            try {
+//                allSubClass.addAll(h.getImplementersOf(currentClass));
+//            } catch (NullPointerException e) {
+//            }
+//            for (SootClass superInterface : h.getSubinterfacesOf(currentClass)) {
+//                allSubClass.addAll(h.getImplementersOf(superInterface));
+//            }
+//        } else if (currentClass.isConcrete() || currentClass.isAbstract()) {
+//            allSubClass.addAll(h.getSubclassesOf(currentClass));
+//        }
+//        if (allSubClass.isEmpty()){
+//            return;
+//        }
+//        String subsig = givenInnerM.getSubSignature();
+//        for (SootClass nowSubClass : allSubClass) {
+//            SootMethod m = nowSubClass.getMethodUnsafe(subsig);
+//            if (null != m) {
+//                results.add(m);
+//            }
+//        }
+//
+//    }
 
 
     @Override
     public void clear() {
-        this.methodDirectInvokeMap.clear();
-        this.methodTotalInvokeMap.clear();
         PatternDataConstant.clear();
         for (PatternData pattern : currentPatterns.values()) {
             pattern.clear();

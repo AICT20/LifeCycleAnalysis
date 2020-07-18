@@ -35,6 +35,7 @@ public class MyComparativeFlyWightSet<V>{
         lock.lock();
         Set<V> result = innermaps.get(currentMap);
         if (null != result) {
+            lock.unlock();
             return result;
         }
         result = new HashSet<>(originSet);
