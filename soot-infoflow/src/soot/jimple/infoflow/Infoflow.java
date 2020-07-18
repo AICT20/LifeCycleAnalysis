@@ -563,7 +563,6 @@ public class Infoflow extends AbstractInfoflow {
 					propagationResults.initialDataProcessing();
 					// Get the result abstractions
 					Set<AbstractionAtSink> res = propagationResults.getResults();
-					propagationResults = null;
 
 					// We need to prune access paths that are entailed by
 					// another one
@@ -707,7 +706,6 @@ public class Infoflow extends AbstractInfoflow {
 					hasMoreSources = oneSourceAtATime != null && oneSourceAtATime.hasNextSource();
 
 					TaintPropagationResults.clearLCResults();
-
 					// Shut down the memory watcher
 					memoryWatcher.close();
 

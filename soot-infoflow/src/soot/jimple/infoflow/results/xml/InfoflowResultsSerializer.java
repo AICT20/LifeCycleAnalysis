@@ -84,6 +84,15 @@ public class InfoflowResultsSerializer {
 			writer.writeStartElement(XmlConstants.Tags.results);
 			writeDataFlows(results, writer);
 			writer.writeEndElement();
+			writer.writeStartElement(XmlConstants.Tags.exception);
+			if (null != results.getExceptions()) {
+				String exceptionStr = "";
+				for (String str : results.getExceptions()) {
+					exceptionStr += str + " \r\n";
+				}
+				writer.writeAttribute(XmlConstants.Tags.exceptionStmt, exceptionStr);
+			}
+			writer.writeEndElement();
 		}
 		writePatternDatas(writer);
 
