@@ -3,6 +3,8 @@ package soot.jimple.infoflow.pattern.patterndata;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
+import soot.jimple.infoflow.solver.cfg.InfoflowCFG;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 
 import java.util.HashMap;
@@ -37,7 +39,7 @@ public class Pattern2Data extends PatternData {
 
 
     @Override
-    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalInvocationMap) {
+    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints,  IInfoflowCFG icfg) {
         if (shouldCheck) {
             this.involvedEntrypoints = new HashMap<>();
             for (SootClass nowclass: allEntrypoints) {

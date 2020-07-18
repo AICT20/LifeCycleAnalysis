@@ -1412,6 +1412,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// We return the aggregated results
 		this.infoflow = null;
 		resultAggregator.clearLastResults();
+		PatternDataHelper.v().clear();
 		return resultAggregator.getAggregatedResults();
 	}
 

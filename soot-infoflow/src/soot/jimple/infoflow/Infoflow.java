@@ -789,8 +789,6 @@ public class Infoflow extends AbstractInfoflow {
 			ex.printStackTrace(pw);
 			results.addException(ex.getClass().getName() + ": " + ex.getMessage() + "\n" + stacktrace.toString());
 			logger.error("Exception during data flow analysis", ex);
-		} finally {
-			PatternDataHelper.v().clear();
 		}
 	}
 
