@@ -40,11 +40,15 @@ public class Pattern2Data extends PatternData {
     public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, Map<SootMethod, Set<SootMethod>> totalInvocationMap) {
         if (shouldCheck) {
             this.involvedEntrypoints = new HashMap<>();
-            for (SootClass nowclass: allEntrypoints) {
-                involvedEntrypoints.put(nowclass, null);//Pattern2不涉及value值，只要key就行了
-            }
+            //这些放在下面慢慢加
+//            for (SootClass nowclass: allEntrypoints) {
+//                involvedEntrypoints.put(nowclass, null);//Pattern2不涉及value值，只要key就行了
+//            }
         }
+    }
 
+    public void addValidEntrypoint(SootClass validEntrypoint) {
+        this.involvedEntrypoints.put(validEntrypoint, null);
     }
 
     @Override

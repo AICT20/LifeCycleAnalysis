@@ -11,7 +11,7 @@ import soot.tagkit.Tag;
 import java.util.*;
 
 public class PatternDataHelper implements PatternInterface {
-    public static String[] testPattern = new String[]{"1"};
+    public static String[] testPattern = new String[]{"2"};
     public static boolean adaptAllEntrypoints = false;
 
     String[] tags = null;

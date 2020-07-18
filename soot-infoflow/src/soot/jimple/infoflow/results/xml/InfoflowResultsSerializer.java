@@ -129,6 +129,16 @@ public class InfoflowResultsSerializer {
 			writer.writeAttribute(XmlConstants.Attributes.minSdk, data.getMinSdk() + "");
 			writer.writeAttribute(XmlConstants.Attributes.targetSdk, data.getTargetSdk() + "");
 			writer.writeEndElement();
+			Set<SootClass> entrypoints = data.getEntrypoints();
+			if (!entrypoints.isEmpty()) {
+				writer.writeStartElement(XmlConstants.Tags.entrypoints);
+				for (SootClass sootclass : entrypoints) {
+					writer.writeStartElement(XmlConstants.Tags.entrypoint);
+					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
+					writer.writeEndElement();
+				}
+				writer.writeEndElement();
+			}
 		}
 		if (helper.hasPattern3()) {
 			Pattern3Data data = helper.getPattern3();
