@@ -65,6 +65,7 @@ import soot.jimple.infoflow.memory.reasons.OutOfMemoryReason;
 import soot.jimple.infoflow.memory.reasons.TimeoutReason;
 import soot.jimple.infoflow.pattern.PatternDataHelper;
 import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
+import soot.jimple.infoflow.pattern.patterndata.Pattern2Data;
 import soot.jimple.infoflow.pattern.patterndata.PatternData;
 import soot.jimple.infoflow.problems.BackwardsInfoflowProblem;
 import soot.jimple.infoflow.problems.InfoflowProblem;
@@ -460,21 +461,20 @@ public class Infoflow extends AbstractInfoflow {
 						continue;
 					}
 					{
-						Pattern1Data data1 = PatternDataHelper.v().getPattern1();
-						if (null != data1) {
-							if (data1.getInvolvedEntrypoints().isEmpty()) {
+						Pattern2Data data2 = PatternDataHelper.v().getPattern2();
+						if (null != data2) {
+							if (data2.getEntrypoints().isEmpty()) {
 								MyOutputer.getInstance().updateInvolvedEntries(config.getIndex(), 0);
 								MyOutputer.getInstance().output();
-								logger.error("Pattern 1 has no involvedentrypoints!!!!");
+								logger.error("Pattern 2 has no involvedentrypoints!!!!");
+								continue;
+
+							} else {
+								MyOutputer.getInstance().updateInvolvedEntries(config.getIndex(), data2.getEntrypoints().size());
+								MyOutputer.getInstance().output();
+								logger.info("Pattern 2 has " + data2.getEntrypoints().size() + " involvedentrypoints!!!!");
 								continue;
 							}
-//							} else {
-//								MyOutputer.getInstance().updateInvolvedEntries(config.getIndex(), data1.getInvolvedEntrypoints().size());
-//								MyOutputer.getInstance().output();
-//								logger.info("Pattern 1 has " + data1.getInitialInvolvedEntrypoints().size() + " initial involvedentrypoints!!!!");
-//								logger.info("Pattern 1 has " + data1.getInvolvedEntrypoints().size() + " involvedentrypoints!!!!");
-//								continue;
-//							}
 
 						}
 					}

@@ -299,7 +299,7 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			shouldapplypattern2 = pattern2.shouldCheck();
 		}
 		if (shouldapplypattern2) {
-			//这是API28以上的正常流程
+			//这是API28以前的正常流程
 			// goTo Stop, Resume or Create:
 			// (to stop is fall-through, no need to add)
 			createIfStmt(onResumeStmt);
@@ -308,7 +308,9 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			if (PatternDataConstant.ONSTARTSUBSIG.equals(pattern1tag)) {
 				body.getUnits().add(pattern2toOnStopStmt);
 			}
+			boolean isCurrentClassPattern2Valid = true;
 			Stmt onStop = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSTOP, component, thisLocal);
+			isCurrentClassPattern2Valid = onStop != null;
 			boolean hasAppOnStop = false;
 			for (SootClass scFragment : newFragmentClasses) {
 				Local fragmentLocal = localVarsForClasses.get(scFragment);
@@ -325,7 +327,10 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 			}
 			if (hasAppOnStop && onStop != null)
 				createIfStmt(onStop);
-			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
+			Stmt s2 = searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
+			if (isCurrentClassPattern2Valid) {
+				isCurrentClassPattern2Valid = s2 != null;
+			}
 			for (SootClass scFragment : newFragmentClasses) {
 				Local fragmentLocal = localVarsForClasses.get(scFragment);
 				generateFragmentOnSaveInstanceState(scFragment, fragmentLocal, component);
@@ -334,7 +339,9 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 				searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITYLIFECYCLECALLBACK_ONACTIVITYSAVEINSTANCESTATE,
 						callbackClass, localVarsForClasses.get(callbackClass), currentClassSet);
 			}
-
+			if (isCurrentClassPattern2Valid) {
+				pattern2.addValidEntrypoint(component);
+			}
 		} else {
 			//这是API28以下的正常流程
 			searchAndBuildMethod(AndroidEntryPointConstants.ACTIVITY_ONSAVEINSTANCESTATE, component, thisLocal);
@@ -475,8 +482,11 @@ public class ActivityEntryPointCreator extends AbstractComponentEntryPointCreato
 		//Pattern2的适配
 		Pattern2Data pattern2 = PatternDataHelper.v().getPattern2();
 		if (null != pattern2 && !pattern2.shouldCheck()) {
-			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
-			searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
+			Stmt s1 = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSTOP, currentClass, classLocal);
+			Stmt s2 = searchAndBuildMethod(AndroidEntryPointConstants.FRAGMENT_ONSAVEINSTANCESTATE, currentClass, classLocal);
+			if (s1 != null && s2 != null) {
+				pattern2.addValidEntrypoint(component);
+			}
 			createIfStmt(onCreateViewStmt);
 			createIfStmt(onStartStmt);
 		} else {

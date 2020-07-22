@@ -751,8 +751,8 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			} else {
 				PatternDataHelper.v().updateInvolvedEntrypoints(entrypoints, null);
 			}
-			PatternDataHelper.v().updateEntryLifeCycleMethodsTags(entrypoints);
 			createMainMethod(component);
+			PatternDataHelper.v().updateEntryLifeCycleMethodsTags(entrypoints);//这个要放在后面，因为Pattern2是在createMainMethod的时候动态确认involvedentrypoints
 //			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
 			releaseCallgraph();
 			PackManager.v().getPack("wjtp").remove("wjtp.lfp");
@@ -1115,7 +1115,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// done before we compute the classpath.
 		if (sootConfig != null)
 			sootConfig.setSootOptions(Options.v(), config);
-
+		Options.v().set_process_multiple_dex(true);
 		Options.v().set_soot_classpath(getClasspath());
 		Main.v().autoSetOptions();
 		configureCallgraph();

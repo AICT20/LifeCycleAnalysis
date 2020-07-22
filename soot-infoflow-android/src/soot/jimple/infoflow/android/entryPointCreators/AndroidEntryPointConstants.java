@@ -40,6 +40,7 @@ public class AndroidEntryPointConstants {
 
 	public static final String APPCOMPATACTIVITYCLASS_V4 = "android.support.v4.app.AppCompatActivity";
 	public static final String APPCOMPATACTIVITYCLASS_V7 = "android.support.v7.app.AppCompatActivity";
+	public static final String APPCOMPATACTIVITYCLASS_ANDROIDX = "androidx.appcompat.app.AppCompatActivity";
 
 	//lifecycle-add 需要加入新版本的Fragment
 	public static final String NEWFRAGMENTCLASS = "androidx.fragment.app.Fragment";
@@ -236,11 +237,13 @@ public class AndroidEntryPointConstants {
 	 * @return True if the given class is one of Android's default lifecycle
 	 *         classes, otherwise false
 	 */
+	//lifecycle-add 增加一下androidx的内容
 	public static boolean isLifecycleClass(String className) {
 		return className.equals(ACTIVITYCLASS) || className.equals(SERVICECLASS) || className.equals(FRAGMENTCLASS)
 				|| className.equals(BROADCASTRECEIVERCLASS) || className.equals(CONTENTPROVIDERCLASS)
 				|| className.equals(APPLICATIONCLASS) || className.equals(APPCOMPATACTIVITYCLASS_V4)
-				|| className.equals(APPCOMPATACTIVITYCLASS_V7) || className.equals(NEWAPPCOMPATACTIVITYCLASS);
+				|| className.equals(APPCOMPATACTIVITYCLASS_V7) || className.equals(NEWAPPCOMPATACTIVITYCLASS)
+				|| className.equals(APPCOMPATACTIVITYCLASS_ANDROIDX);
 	}
 
 	/**

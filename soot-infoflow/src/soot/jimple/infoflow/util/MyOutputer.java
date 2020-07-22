@@ -14,9 +14,13 @@ public class MyOutputer {
     private MyOutputer() {
         edgeNums = new HashMap<>();
         involvedEntries = new HashMap<>();
+        minSdks = new HashMap<>();
+        targetSdks = new HashMap<>();
     }
     private Map<Integer, Integer> edgeNums = null;
     private Map<Integer, Integer> involvedEntries = null;
+    private Map<Integer, Integer> minSdks = null;
+    private Map<Integer, Integer> targetSdks = null;
     public static MyOutputer getInstance() {
         if(null == instance) {
             instance = new MyOutputer();
@@ -31,6 +35,12 @@ public class MyOutputer {
     }
     public void updateInvolvedEntries(int index, int num) {
         involvedEntries.put(index, num);
+    }
+    public void updateMinSdk(int index, int minsdk) {
+        minSdks.put(index, minsdk);
+    }
+    public void updateTargetSdk(int index, int targetsdk) {
+        targetSdks.put(index, targetsdk);
     }
     public void setOutputFile(File outputFile) {
         this.outputFile = outputFile;
@@ -50,9 +60,11 @@ public class MyOutputer {
                 if ( involvedEntries.containsKey(i)) {
                     int entries = involvedEntries.get(i);
                     bw.write(i + "th app has " + edges + " edges and " + entries + " entries");
+                    if (minSdks.containsKey(i) && targetSdks.containsKey(i)) {
+                        bw.write("\t\t minSDK: " + minSdks.get(i) + "    targetSDK: " + targetSdks.get(i));
+                    }
                 } else {
                     bw.write(i + "th app has " + edges + " edges and no sources");
-
                 }
 
                 bw.newLine();
