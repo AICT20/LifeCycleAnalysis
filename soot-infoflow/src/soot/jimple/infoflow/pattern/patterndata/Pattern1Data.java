@@ -1,5 +1,6 @@
 package soot.jimple.infoflow.pattern.patterndata;
 
+import heros.solver.Pair;
 import soot.*;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
@@ -11,64 +12,20 @@ import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 import java.util.*;
 
 //pattern1 是在onCreate方法中调用finish()函数时将会跳过onStart、onResume、onPause和onStop方法的执行，直接跳到onDestroy
-//TODO 在onStart方法中执行finish()时也会跳过onResume和onPause
+//这样的话，Pattern1应该包含的LCmethod有：onCreate(), onStart(), onStop(), onDestroy()
+//争议点：onPause()以及onResume()是否也需要加入计算？
+
 public class Pattern1Data extends PatternData {
-    private Map<SootClass, String> initialInvolvedEntrypoints = null;
     public Pattern1Data(){
         super();
-        initialInvolvedEntrypoints = new HashMap<>();
     }
 
-    public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg) {
-//        seedMethods = searchForSeedMethods(icfg, "void onDestroy()");
-    }
 
-    public Map<SootClass, String> getInvolvedEntrypoints() {
-        return this.involvedEntrypoints;
-    }
 
-    public Map<SootClass, String> getInitialInvolvedEntrypoints(){
-        return this.initialInvolvedEntrypoints;
-    }
 
-    //TODO  这里错了！！！ 在同一个Activity， finish()应该既可以在onCreate也可以在onStart中执行
-    @Override
-    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
-        this.involvedEntrypoints.clear();
-        this.initialInvolvedEntrypoints.clear();
-        if (null == icfg) {
-            this.involvedEntrypoints = new HashMap<>();
-            for (SootClass nowclass : allEntrypoints) {
-                this.involvedEntrypoints.put(nowclass, PatternDataConstant.ONCREATESUBSIG);
-            }
-            return;
-        }
 
-        this.initialInvolvedEntrypoints = getInitialEntryClasses(icfg);
-        this.involvedEntrypoints.putAll(this.initialInvolvedEntrypoints);
-        for (SootClass initalClass : this.initialInvolvedEntrypoints.keySet()) {
-            String methodName = this.initialInvolvedEntrypoints.get(initalClass);
-            Hierarchy h = Scene.v().getActiveHierarchy();
-            if (initalClass.isInterface()) {
-                for (SootClass impleClass : h.getImplementersOf(initalClass)) {
-                    this.involvedEntrypoints.put(impleClass, methodName);
-                }
-                for (SootClass subImle : h.getSubinterfacesOf(initalClass)) {
-                    for (SootClass impleClass : h.getImplementersOf(subImle)) {
-                        this.involvedEntrypoints.put(impleClass, methodName);
-                    }
-                }
-            } else if (initalClass.isConcrete() || initalClass.isAbstract()) {
-                for (SootClass subClass : h.getSubclassesOf(initalClass)) {
-                    this.involvedEntrypoints.put(subClass, methodName);
-                }
-            }
-        }
-//        System.out.println();
 
-    }
-
-    private Map<SootClass, String> getInitialEntryClasses( IInfoflowCFG icfg) {
+    protected Map<SootClass, PatternEntryData> getInitialEntryClasses(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
         SootMethod finishM = Scene.v().getMethod(PatternDataConstant.FINISHMETHODSIG);
         if (null == finishM) {
             return Collections.EMPTY_MAP;
@@ -92,24 +49,37 @@ public class Pattern1Data extends PatternData {
                 }
             }
         }
-        Map<SootClass, String> initalEntrypoints = new HashMap<>();
+        Map<SootClass, PatternEntryData> initalEntrypoints = new HashMap<>();
         for (SootMethod m : callFinishMethod) {
-            if (m.getSubSignature().equals(PatternDataConstant.ONCREATESUBSIG) || m.getSubSignature().equals(PatternDataConstant.ONSTARTSUBSIG)) {
-                initalEntrypoints.put(m.getDeclaringClass(), m.getSubSignature());
+            String finishTag = m.getSubSignature();
+            if (finishTag.equals(PatternDataConstant.ACTIVITY_ONCREATE) || finishTag.equals(PatternDataConstant.ACTIVITY_ONSTART)) {
+                SootClass cClass = m.getDeclaringClass();
+                PatternEntryData cData = initalEntrypoints.get(cClass);
+                if (null == cData) {
+                    cData = new PatternEntryData(cClass);
+                    initalEntrypoints.put(cClass, cData);
+                }
+                updateEntryDataWithLCMethods(cClass, cData);
             }
         }
         return  initalEntrypoints;
     }
 
-    @Override
-    public Set<SootClass> getEntrypoints() {
-        return involvedEntrypoints.keySet();
+    protected void updateEntryDataWithLCMethods(SootClass cClass, PatternEntryData cData) {
+        //这部分到时候再减少一些
+        String[] methodsigs = new String[] {PatternDataConstant.ACTIVITY_ONCREATE, PatternDataConstant.ACTIVITY_ONSTART, PatternDataConstant.ACTIVITY_ONRESUME,
+                PatternDataConstant.ACTIVITY_ONPAUSE, PatternDataConstant.ACTIVITY_ONSTOP, PatternDataConstant.ACTIVITY_ONDESTROY};
+        for (String methodsig : methodsigs) {
+            SootMethod lcmethod = cClass.getMethodUnsafe(methodsig);
+            if (null != lcmethod) {
+                Pair<String, SootMethod> pair = new Pair<>(methodsig, lcmethod);
+                cData.add(pair);
+            }
+        }
     }
 
-    public void clear() {
-        this.involvedEntrypoints.clear();
-        this.initialInvolvedEntrypoints.clear();
-    }
+
+
 
 //    @Override
 //    public void updateDummyMainMethod(SootMethod dummyMainMethod) {

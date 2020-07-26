@@ -29,7 +29,7 @@ public interface IOneSourceAtATimeManager {
 	 * Resets the iterator. This means that the source/sink manager starts again
 	 * with the first source.
 	 */
-    void resetCurrentSource();
+//    void resetCurrentSource();
 	
 	/**
 	 * Advances the iterator to the next source.

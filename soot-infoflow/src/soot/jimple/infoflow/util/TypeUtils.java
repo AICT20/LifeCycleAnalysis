@@ -16,6 +16,7 @@ import soot.SootClass;
 import soot.Type;
 import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.AccessPath;
+import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
 
 /**
  * Class containing various utility methods for dealing with type information
@@ -25,9 +26,9 @@ import soot.jimple.infoflow.data.AccessPath;
  */
 public class TypeUtils {
 
-	private final InfoflowManager manager;
+	private final PatternInfoflowManager manager;
 
-	public TypeUtils(InfoflowManager manager) {
+	public TypeUtils(PatternInfoflowManager manager) {
 		this.manager = manager;
 	}
 

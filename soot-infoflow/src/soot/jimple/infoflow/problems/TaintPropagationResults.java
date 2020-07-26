@@ -130,131 +130,132 @@ public class TaintPropagationResults {
 		this.resultAddedHandlers.add(handler);
 	}
 
-	//lifecycle-add 增加对results的初步处理
-	public void initialDataProcessing() {
-		MyConcurrentHashMap<AbstractionAtSink, Abstraction> newresults = new MyConcurrentHashMap();
-		//预处理下
-		Map<Abstraction, SourceSinkDefinition> sourceDefMap = new HashMap<>();
-		for (Map.Entry<AbstractionAtSink, Abstraction> entry : this.results.entrySet()) {
-			SourceSinkDefinition sourceDef = MyOwnUtils.getOriginalSource(entry.getValue());
-			sourceDefMap.put(entry.getValue(), sourceDef);
-		}
-
-
-		for (Map.Entry<AbstractionAtSink, Abstraction> entry : this.results.entrySet()) {
-			AbstractionAtSink absink = entry.getKey();
-			Abstraction abs = entry.getValue();
-			SourceSinkDefinition sourceDef = sourceDefMap.get(abs);
-			//先处理killStmts
-			Set<Stmt> currentkillStmts = abs.getKillStmts();
-			if (null != currentkillStmts && !currentkillStmts.isEmpty()) {
-				Set<Stmt> defkillStmts = allkillStmts.get(sourceDef);
-				if (null != defkillStmts && !defkillStmts.isEmpty()) {
-					Set<Stmt> tempSet = new HashSet(currentkillStmts);
-					tempSet.retainAll(defkillStmts);
-					if (!tempSet.isEmpty()) {
-						//如果有交集，说明当前的这个记录是错误的，应当删除
-						continue;
-					}
-				}
-
-			}
-			//再处理ifstmt
-			Set<Pair<IfStmt, Boolean>> currentkillifStmts = abs.getIfKillStmts();
-			if (null != currentkillifStmts && !currentkillifStmts.isEmpty()) {
-				Set<Pair<Stmt, Boolean>> defkillifStmts = allkillifStmts.get(sourceDef);
-				if (null != defkillifStmts && !defkillifStmts.isEmpty()) {
-					Set<Stmt> tempSet = new HashSet(currentkillifStmts);
-					tempSet.retainAll(defkillifStmts);
-					if (!tempSet.isEmpty()) {
-						//如果有交集，说明当前的这个记录是错误的，应当删除
-						continue;
-					}
-				}
-			}
-
-//			if (abs.getKillStmts() == null) {
-//				//TODO 这里改一下，进行测试
-//				newresults.put(absink, abs);
-//				break;
-//			} else {
-//				continue;
+//	//lifecycle-add 增加对results的初步处理
+//	public void initialDataProcessing() {
+//		MyConcurrentHashMap<AbstractionAtSink, Abstraction> newresults = new MyConcurrentHashMap();
+//		//预处理下
+//		Map<Abstraction, SourceSinkDefinition> sourceDefMap = new HashMap<>();
+//		for (Map.Entry<AbstractionAtSink, Abstraction> entry : this.results.entrySet()) {
+//			SourceSinkDefinition sourceDef = MyOwnUtils.getOriginalSource(entry.getValue());
+//			sourceDefMap.put(entry.getValue(), sourceDef);
+//		}
+//
+//
+//		for (Map.Entry<AbstractionAtSink, Abstraction> entry : this.results.entrySet()) {
+//			AbstractionAtSink absink = entry.getKey();
+//			Abstraction abs = entry.getValue();
+//			SourceSinkDefinition sourceDef = sourceDefMap.get(abs);
+//			//先处理killStmts
+//			Set<Stmt> currentkillStmts = abs.getKillStmts();
+//			if (null != currentkillStmts && !currentkillStmts.isEmpty()) {
+//				Set<Stmt> defkillStmts = allkillStmts.get(sourceDef);
+//				if (null != defkillStmts && !defkillStmts.isEmpty()) {
+//					Set<Stmt> tempSet = new HashSet(currentkillStmts);
+//					tempSet.retainAll(defkillStmts);
+//					if (!tempSet.isEmpty()) {
+//						//如果有交集，说明当前的这个记录是错误的，应当删除
+//						continue;
+//					}
+//				}
+//
 //			}
-
-			newresults.put(absink, abs);
-		}
-		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
-			Abstraction abs = entry.getValue();
-			LinkedList<SootMethod> preMethods = new LinkedList();
-			LinkedList<Stmt> preStmts = new LinkedList();
-			LinkedList<Abstraction> absSets = new LinkedList<>();
-			Abstraction currentAbs = abs;
-			while (null != currentAbs) {
-				preStmts.add(currentAbs.getCurrentStmt());
-				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
-				absSets.add(currentAbs);
-				currentAbs = currentAbs.getPredecessor();
-			}
-
-//			if (abs.getKillStmts() == null) {
-//				System.out.println();
+//			//再处理ifstmt
+//			Set<Pair<IfStmt, Boolean>> currentkillifStmts = abs.getIfKillStmts();
+//			if (null != currentkillifStmts && !currentkillifStmts.isEmpty()) {
+//				Set<Pair<Stmt, Boolean>> defkillifStmts = allkillifStmts.get(sourceDef);
+//				if (null != defkillifStmts && !defkillifStmts.isEmpty()) {
+//					Set<Stmt> tempSet = new HashSet(currentkillifStmts);
+//					tempSet.retainAll(defkillifStmts);
+//					if (!tempSet.isEmpty()) {
+//						//如果有交集，说明当前的这个记录是错误的，应当删除
+//						continue;
+//					}
+//				}
 //			}
-		}
+//
+////			if (abs.getKillStmts() == null) {
+////				//TODO 这里改一下，进行测试
+////				newresults.put(absink, abs);
+////				break;
+////			} else {
+////				continue;
+////			}
+//
+//			newresults.put(absink, abs);
+//		}
+//		for (Map.Entry<AbstractionAtSink, Abstraction> entry : newresults.entrySet()) {
+//			Abstraction abs = entry.getValue();
+//			LinkedList<SootMethod> preMethods = new LinkedList();
+//			LinkedList<Stmt> preStmts = new LinkedList();
+//			LinkedList<Abstraction> absSets = new LinkedList<>();
+//			Abstraction currentAbs = abs;
+//			while (null != currentAbs) {
+//				preStmts.add(currentAbs.getCurrentStmt());
+//				preMethods.add(manager.getICFG().getMethodOf(currentAbs.getCurrentStmt()));
+//				absSets.add(currentAbs);
+//				currentAbs = currentAbs.getPredecessor();
+//			}
+//
+////			if (abs.getKillStmts() == null) {
+////				System.out.println();
+////			}
+//		}
+//
+//		this.results = newresults;
+//	}
 
-		this.results = newresults;
-	}
 
-
+	//下面的估计全部要废弃了2020.7.23
 	//lifecycle-add 我们加一点对于killstmt的全局内容 注意！！！这个allkillStmts仅针对当前的单个taint
-	public static void initLCResults() {
-		allkillStmts = new ConcurrentHashMap<>();
-		allkillifStmts = new ConcurrentHashMap<>();
-	}
-	public static void clearLCResults() {
-		allkillStmts.clear();
-		allkillifStmts.clear();
-	}
-	protected static Map<SourceSinkDefinition, Set<Stmt>> allkillStmts = null;//保存所有的kill操作的位置
-	public static Map<SourceSinkDefinition, Set<Stmt>> getAllkillStmts() {
-		return allkillStmts;
-	}
-	public static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> getAllIfkillStmts() {
-		return allkillifStmts;
-	}
-	public static boolean addKillStmts(SourceSinkDefinition def, Stmt stmt) {
-		Set<Stmt> killstmts = allkillStmts.get(def);
-		if (null == killstmts) {
-			killstmts = new ConcurrentHashSet<>();
-			allkillStmts.put(def, killstmts);
-		}
-		return killstmts.add(stmt);
-	}
-	public static boolean shouldBeKilledForKillStmts(SourceSinkDefinition def, Stmt stmt) {
-		Set<Stmt> killstmts = allkillStmts.get(def);
-		if (null == killstmts) {
-			return false;
-		}
-        return killstmts.contains(stmt);
-    }
-
-	protected static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> allkillifStmts = null;//保存所有taint能正常传递的return语句
-	//这里 true表示需要跳转时进行kill，false表示不跳转时kill
-	public static boolean addKillIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean shouldJump) {
-		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
-		if (null == killifstmts) {
-			killifstmts = new ConcurrentHashSet<>();
-			allkillifStmts.put(def, killifstmts);
-		}
-		return killifstmts.add(new Pair<Stmt, Boolean>(stmt, shouldJump));
-	}
-
-	public static boolean shouldBeKilledForIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean isJumping) {
-		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
-		if (null == killifstmts) {
-			return false;
-		}
-        return killifstmts.contains(new Pair<IfStmt, Boolean>(stmt, isJumping));
-    }
+//	public static void initLCResults() {
+//		allkillStmts = new ConcurrentHashMap<>();
+//		allkillifStmts = new ConcurrentHashMap<>();
+//	}
+//	public static void clearLCResults() {
+//		allkillStmts.clear();
+//		allkillifStmts.clear();
+//	}
+//	protected static Map<SourceSinkDefinition, Set<Stmt>> allkillStmts = null;//保存所有的kill操作的位置
+//	public static Map<SourceSinkDefinition, Set<Stmt>> getAllkillStmts() {
+//		return allkillStmts;
+//	}
+//	public static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> getAllIfkillStmts() {
+//		return allkillifStmts;
+//	}
+//	public static boolean addKillStmts(SourceSinkDefinition def, Stmt stmt) {
+//		Set<Stmt> killstmts = allkillStmts.get(def);
+//		if (null == killstmts) {
+//			killstmts = new ConcurrentHashSet<>();
+//			allkillStmts.put(def, killstmts);
+//		}
+//		return killstmts.add(stmt);
+//	}
+//	public static boolean shouldBeKilledForKillStmts(SourceSinkDefinition def, Stmt stmt) {
+//		Set<Stmt> killstmts = allkillStmts.get(def);
+//		if (null == killstmts) {
+//			return false;
+//		}
+//        return killstmts.contains(stmt);
+//    }
+//
+//	protected static Map<SourceSinkDefinition, Set<Pair<Stmt, Boolean>>> allkillifStmts = null;//保存所有taint能正常传递的return语句
+//	//这里 true表示需要跳转时进行kill，false表示不跳转时kill
+//	public static boolean addKillIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean shouldJump) {
+//		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
+//		if (null == killifstmts) {
+//			killifstmts = new ConcurrentHashSet<>();
+//			allkillifStmts.put(def, killifstmts);
+//		}
+//		return killifstmts.add(new Pair<Stmt, Boolean>(stmt, shouldJump));
+//	}
+//
+//	public static boolean shouldBeKilledForIfStmts(SourceSinkDefinition def, IfStmt stmt, boolean isJumping) {
+//		Set<Pair<Stmt, Boolean>> killifstmts = allkillifStmts.get(def);
+//		if (null == killifstmts) {
+//			return false;
+//		}
+//        return killifstmts.contains(new Pair<IfStmt, Boolean>(stmt, isJumping));
+//    }
 
 
 

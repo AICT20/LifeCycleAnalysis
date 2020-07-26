@@ -1,8 +1,7 @@
 package soot.jimple.infoflow.pattern.patterndata;
 
-import soot.SootClass;
-import soot.SootMethod;
-import soot.Unit;
+import heros.solver.Pair;
+import soot.*;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.solver.cfg.InfoflowCFG;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
@@ -14,11 +13,12 @@ import java.util.Set;
 // onSaveInstanceState 的生命周期发生了改变，变成了在onStop 之后，在API28之前的版本则在onStop之前，且不确定它与onPause的顺序
 
 //注意，这种情况下onSaveInstanceState在前在后都需要分析
-//TODO onstop可能也需要分析？？？
 public class Pattern2Data extends PatternData {
     private int targetSdk = -1;
     private int minSdk = -1;
     private boolean shouldCheck = false;
+
+
     public Pattern2Data(int targetSdk, int minSdk) {
         super();
         this.targetSdk = targetSdk;
@@ -28,49 +28,46 @@ public class Pattern2Data extends PatternData {
         }
     }
 
-    public boolean shouldCheck() {
-        return this.shouldCheck;
-    }
 
     @Override
-    public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg) {
-//        seedMethods = searchForSeedMethods(icfg, "void onSaveInstanceState(android.os.Bundle)");
+    protected Map<SootClass, PatternEntryData> getInitialEntryClasses(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
+        Map<SootClass, PatternEntryData> newEntrypoints = new HashMap<>();
+        for (SootClass cClass : allEntrypoints) {
+            SootMethod onStopMethod = cClass.getMethodUnsafe(PatternDataConstant.ACTIVITY_ONSTOP);
+            if (null == onStopMethod) {continue;}
+            SootMethod onSaveMethod = cClass.getMethodUnsafe(PatternDataConstant.ACTIVITY_ONSAVEINSTANCESTATE);
+            if (null == onSaveMethod) {continue;}
+            newEntrypoints.put(cClass, new PatternEntryData(cClass));
+        }
+        return newEntrypoints;
     }
 
-
-    @Override
-    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints,  IInfoflowCFG icfg) {
-        if (shouldCheck) {
-            this.involvedEntrypoints = new HashMap<>();
-            //这些放在下面慢慢加
-//            for (SootClass nowclass: allEntrypoints) {
-//                involvedEntrypoints.put(nowclass, null);//Pattern2不涉及value值，只要key就行了
-//            }
+    protected void updateEntryDataWithLCMethods(SootClass cClass, PatternEntryData cData) {
+        //这部分到时候再减少一些
+        String[] methodsigs = new String[] {PatternDataConstant.ACTIVITY_ONSTOP, PatternDataConstant.ACTIVITY_ONSAVEINSTANCESTATE};
+        for (String methodsig : methodsigs) {
+            SootMethod lcmethod = cClass.getMethodUnsafe(methodsig);
+            if (null != lcmethod) {
+                Pair<String, SootMethod> pair = new Pair<>(methodsig, lcmethod);
+                cData.add(pair);
+            }
         }
     }
 
-    public void addValidEntrypoint(SootClass validEntrypoint) {
-        this.involvedEntrypoints.put(validEntrypoint, null);
-    }
-
-    @Override
-    public Set<SootClass> getEntrypoints() {
-        return involvedEntrypoints.keySet();
-    }
 
     public int getMinSdk() {
-        return this.getMinSdk();
+        return this.minSdk;
     }
 
     public int getTargetSdk() {
-        return this.getTargetSdk();
+        return this.targetSdk;
     }
 
     public void clear() {
+        super.clear();
         targetSdk = -1;
         minSdk = -1;
         shouldCheck = false;
-        this.involvedEntrypoints.clear();
     }
 
 }

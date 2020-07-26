@@ -1,69 +1,79 @@
 package soot.jimple.infoflow.pattern.patterndata;
 
+import heros.solver.Pair;
 import soot.*;
 import soot.jimple.Stmt;
+import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 
 import java.util.*;
 
+//TODO 大改，新版本下，analyse的分析主体改为PatternData内的entrypoints，而不再是flowdroid自身构建的main函数
 public abstract class PatternData implements PatternInterface{
-    protected Set<SootMethod> seedMethods = null;//这里存储的都是onDestroy的方法
     protected BiDiInterproceduralCFG<Unit, SootMethod> icfg = null;
-    protected Map<SootClass, String> involvedEntrypoints = null;
+    protected Map<SootClass, PatternEntryData> involvedEntrypoints = null;
+    protected Map<SootClass, PatternEntryData> initialInvolvedEntrypoints = null;
+
     public PatternData() {
+        this.initialInvolvedEntrypoints = new HashMap<>();
         this.involvedEntrypoints = new HashMap<>();
     }
-
-    public Set<Unit> getInitialSeeds() {
-        Set<Unit> seeds = new HashSet<Unit>();
-        for (SootMethod m : seedMethods) {
-            for (Unit u: icfg.getStartPointsOf(m)) {
-                seeds.add(u);
+    public Map<SootClass, PatternEntryData> getInvolvedEntrypoints() {
+        return this.involvedEntrypoints;
+    }
+    @Override
+    public Set<SootMethod> getEntryMethods() {
+        Set<SootMethod> entrymethods = new HashSet<>();
+        if (!involvedEntrypoints.isEmpty()) {
+            for (PatternEntryData data : involvedEntrypoints.values()) {
+                entrymethods.addAll(data.getAllMethods());
             }
         }
-
-        return seeds;
+        return entrymethods;
     }
-    public boolean isExitPoint(Unit u) {
-        if (u instanceof Stmt) {
-            if ( ((Stmt)u).containsInvokeExpr()) {
-                SootMethod m = ((Stmt)u).getInvokeExpr().getMethod();
-                //说明是对这些onDestroy method的调用
-                return seedMethods.contains(m);
-            }
+    @Override
+    public void updateInvolvedEntrypoints(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
+        this.involvedEntrypoints.clear();
+        this.initialInvolvedEntrypoints.clear();
+        if (null == icfg) {
+            throw new RuntimeException("CFG was not constructed at Pattern Adaption!");
         }
-        return false;
-    }
 
-
-
-    abstract public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg); //这个只是npe用，resource leak的话它的seed比较少，比较好控制
-    protected Set<SootMethod> searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg, String methodname){
-        seedMethods = new HashSet<SootMethod>();
-        this.icfg = icfg;
-        if (Scene.v().hasCallGraph()) {
-            ReachableMethods reachableMethods = Scene.v().getReachableMethods();
-            reachableMethods.update();
-            for (Iterator<MethodOrMethodContext> iter = reachableMethods.listener(); iter.hasNext();) {
-                SootMethod sm = iter.next().method();
-                if (sm.getSubSignature().equals(methodname) && !sm.getDeclaringClass().isLibraryClass()) {//这里可以更加详细些
-                    seedMethods.add(sm);
-                }
-                //下面是测试用的
-//                if (sm.getSubSignature().contains("onSaveInstance")) {
-//                    System.out.println();
+        this.initialInvolvedEntrypoints = getInitialEntryClasses(allEntrypoints, icfg);
+        this.involvedEntrypoints.putAll(this.initialInvolvedEntrypoints);
+        for (SootClass initalClass : this.initialInvolvedEntrypoints.keySet()) {
+            Hierarchy h = Scene.v().getActiveHierarchy();
+//            if (initalClass.isInterface()) {
+//                for (SootClass impleClass : h.getImplementersOf(initalClass)) {
+//                    this.involvedEntrypoints.put(impleClass, methodName);
 //                }
+//                for (SootClass subImle : h.getSubinterfacesOf(initalClass)) {
+//                    for (SootClass impleClass : h.getImplementersOf(subImle)) {
+//                        this.involvedEntrypoints.put(impleClass, methodName);
+//                    }
+//                }
+//            } else
+            if (initalClass.isConcrete() || initalClass.isAbstract()) {
+                for (SootClass subClass : h.getSubclassesOf(initalClass)) {
+                    PatternEntryData cData = involvedEntrypoints.get(subClass);
+                    if (null == cData) {
+                        cData = new PatternEntryData(subClass);
+                        involvedEntrypoints.put(subClass, cData);
+                    }
+                    updateEntryDataWithLCMethods(subClass, cData);
+
+                    this.involvedEntrypoints.put(subClass, cData);
+                }
             }
-        } else {
-            System.err.println("call graph loading for patterns error!!!");
         }
-        return seedMethods;
+//        System.out.println();
+
     }
-
-
-    public String getFinishLocation(SootClass givenclass) {
-        return this.involvedEntrypoints.get(givenclass);
+    protected abstract Map<SootClass, PatternEntryData> getInitialEntryClasses(Set<SootClass> allEntrypoints, IInfoflowCFG icfg);
+    protected abstract void updateEntryDataWithLCMethods(SootClass cClass, PatternEntryData cData);
+    public void clear() {
+        this.involvedEntrypoints.clear();
+        this.initialInvolvedEntrypoints.clear();
     }
-
 }

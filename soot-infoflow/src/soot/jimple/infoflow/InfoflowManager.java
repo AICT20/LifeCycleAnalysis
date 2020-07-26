@@ -5,6 +5,7 @@ import soot.jimple.infoflow.aliasing.Aliasing;
 import soot.jimple.infoflow.data.AccessPathFactory;
 import soot.jimple.infoflow.globalTaints.GlobalTaintManager;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
+import soot.jimple.infoflow.pattern.solver.NormalSolver;
 import soot.jimple.infoflow.solver.IInfoflowSolver;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
@@ -21,7 +22,7 @@ import soot.jimple.infoflow.util.TypeUtils;
 public class InfoflowManager {
 
 	private final InfoflowConfiguration config;
-	private IInfoflowSolver forwardSolver;
+	private NormalSolver forwardSolver;
 	private final IInfoflowCFG icfg;
 	private final ISourceSinkManager sourceSinkManager;
 	private final ITaintPropagationWrapper taintWrapper;
@@ -31,7 +32,7 @@ public class InfoflowManager {
 	private final GlobalTaintManager globalTaintManager;
 	private Aliasing aliasing;
 
-	protected InfoflowManager(InfoflowConfiguration config, IInfoflowSolver forwardSolver, IInfoflowCFG icfg,
+	protected InfoflowManager(InfoflowConfiguration config, NormalSolver forwardSolver, IInfoflowCFG icfg,
 			ISourceSinkManager sourceSinkManager, ITaintPropagationWrapper taintWrapper, FastHierarchy hierarchy,
 			AccessPathFactory accessPathFactory, GlobalTaintManager globalTaintManager) {
 		this.config = config;
@@ -59,7 +60,7 @@ public class InfoflowManager {
 	 * 
 	 * @param solver The IFDS solver that propagates edges forward
 	 */
-	public void setForwardSolver(IInfoflowSolver solver) {
+	public void setForwardSolver(NormalSolver solver) {
 		this.forwardSolver = solver;
 	}
 

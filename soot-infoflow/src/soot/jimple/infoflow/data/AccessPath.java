@@ -421,7 +421,7 @@ public class AccessPath implements Cloneable {
 	 *
 	 * @return The access path that is used in the zero abstraction
 	 */
-	static AccessPath getZeroAccessPath() {
+	public static AccessPath getZeroAccessPath() {
 		if (zeroAccessPath == null)
 			zeroAccessPath = new AccessPath(Jimple.v().newLocal("zero", NullType.v()), null, NullType.v(), null, false,
 					false, ArrayTaintType.ContentsAndLength, false);

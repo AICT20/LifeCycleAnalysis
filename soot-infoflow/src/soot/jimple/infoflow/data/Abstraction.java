@@ -23,6 +23,7 @@ import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.collect.AtomicBitSet;
 import soot.jimple.infoflow.pattern.patterndata.PatternData;
 import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
+import soot.jimple.infoflow.pattern.patternresource.LCResourceOPList;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG.UnitContainer;
 import soot.jimple.infoflow.solver.fastSolver.FastSolverLinkedNode;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
@@ -43,7 +44,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	/**
 	 * the access path contains the currently tainted variable or field
 	 */
-	//lifecycle-add 这里修改，改成一个accesspath的集合
 	protected AccessPath accessPath;
 
 	protected Abstraction predecessor = null;
@@ -52,19 +52,15 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	protected Stmt correspondingCallSite = null;
 
 	protected SourceContext sourceContext = null;
-	//lifecycle-add
-	protected Set<Stmt> killStmts = null;
-	protected Set<Pair<IfStmt, Boolean>> ifkillStmts = null;
-	protected boolean isfinishing = false;
-	//新一轮调整
+	//新一轮调整2020.7.24
 	protected SourceSinkDefinition tempdef = null;//这里的tempdef不进行hash以及equals的比较
-	protected Set<String> tagnames = null;//用来记录当前的source的来源entrypoints
 	public SourceSinkDefinition getOriginalDef() {
 		return tempdef;
 	}
 	public void setOriginalDef(SourceSinkDefinition def) {
 		tempdef = def;
 	}
+	protected LCResourceOPList oplist = null;
 
 	/**
 	 * Unit/Stmt which activates the taint when the abstraction passes it
@@ -145,12 +141,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 					return false;
 			} else if (!abs1.currentStmt.equals(abs2.currentStmt))
 				return false;
-			if (abs1.killStmts != abs2.killStmts) {
-				return false;
-			}
-			if (abs1.ifkillStmts != abs2.ifkillStmts) {
-				return false;
-			}
 
 			return abs1.localEquals(abs2);
 		}
@@ -168,8 +158,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 		this.accessPath = apToTaint;
 		this.activationUnit = null;
 		this.exceptionThrown = exceptionThrown;
-		this.killStmts = null;
-		this.ifkillStmts = null;
 		this.neighbors = null;
 		this.isImplicit = isImplicit;
 		this.currentStmt = sourceContext == null ? null : sourceContext.getStmt();
@@ -464,7 +452,6 @@ public class Abstraction implements Cloneable, FastSolverLinkedNode<Abstraction,
 	public Abstraction getActiveCopy() {
 		if (this.isAbstractionActive())
 			return this;
-
 
 		Abstraction a = clone();
 		a.sourceContext = null;

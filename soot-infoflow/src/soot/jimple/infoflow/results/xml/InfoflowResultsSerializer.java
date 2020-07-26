@@ -14,7 +14,7 @@ import soot.SootClass;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.data.AccessPath;
-import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataHelper;
 import soot.jimple.infoflow.pattern.patterndata.Pattern1Data;
 import soot.jimple.infoflow.pattern.patterndata.Pattern2Data;
 import soot.jimple.infoflow.pattern.patterndata.Pattern3Data;

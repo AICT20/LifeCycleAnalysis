@@ -49,7 +49,7 @@ import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.AccessPath.ArrayTaintType;
 import soot.jimple.infoflow.handlers.TaintPropagationHandler.FlowFunctionType;
-import soot.jimple.infoflow.pattern.PatternDataHelper;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataHelper;
 import soot.jimple.infoflow.pattern.patterndata.PatternDataConstant;
 import soot.jimple.infoflow.pattern.patterntag.LCExitFinishTag;
 import soot.jimple.infoflow.problems.rules.IPropagationRuleManagerFactory;
