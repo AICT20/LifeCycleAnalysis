@@ -11,7 +11,6 @@
 package soot.jimple.infoflow.ipc;
 
 import soot.SootMethod;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 
 /**
  * A {@link ISourceSinkManager} that always returns false, i.e. one for which

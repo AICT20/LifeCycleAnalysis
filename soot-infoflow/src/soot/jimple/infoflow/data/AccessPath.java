@@ -11,6 +11,7 @@
 package soot.jimple.infoflow.data;
 
 import java.util.Arrays;
+import java.util.List;
 
 import soot.*;
 import soot.jimple.ArrayRef;
@@ -49,9 +50,15 @@ public class AccessPath implements Cloneable {
 	private final ArrayTaintType arrayTaintType;
 
 	private final boolean canHaveImmutableAliases;
-//	//lifecycle-add->这个不用加,还是保留在Abstraction里就行了
-//	private Unit activationUnit = null;
-//	private boolean isactive = true;
+	//新版本增加——由于我们可能把field，或是list.get()也放在同一个normalstate的aps中，因此需要表示这个accesspath是child,field等等属性
+	private List<SootField> relations = null;
+	public void setResourceRelations(List<SootField> newrelations) {
+		relations = newrelations;
+	}
+	public List<SootField> getRelations() {
+		return relations;
+	}
+
 
 	private int hashCode = 0;
 

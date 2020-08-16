@@ -19,17 +19,11 @@ import soot.jimple.infoflow.cfg.BiDirICFGFactory;
 import soot.jimple.infoflow.cfg.DefaultBiDiICFGFactory;
 import soot.jimple.infoflow.cfg.LibraryClassPatcher;
 import soot.jimple.infoflow.config.IInfoflowConfig;
-import soot.jimple.infoflow.data.pathBuilders.IPathBuilderFactory;
-import soot.jimple.infoflow.entryPointCreators.DefaultEntryPointCreator;
-import soot.jimple.infoflow.entryPointCreators.IEntryPointCreator;
 import soot.jimple.infoflow.handlers.PostAnalysisHandler;
 import soot.jimple.infoflow.handlers.PreAnalysisHandler;
 import soot.jimple.infoflow.ipc.DefaultIPCManager;
 import soot.jimple.infoflow.ipc.IIPCManager;
-import soot.jimple.infoflow.nativeCallHandler.DefaultNativeCallHandler;
 import soot.jimple.infoflow.nativeCallHandler.INativeCallHandler;
-import soot.jimple.infoflow.sourcesSinks.manager.DefaultSourceSinkManager;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
 import soot.options.Options;
 
 /**
@@ -41,11 +35,8 @@ import soot.options.Options;
 public abstract class AbstractInfoflow implements IInfoflow {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
-
-	protected IPathBuilderFactory pathBuilderFactory;
 	protected InfoflowConfiguration config = new InfoflowConfiguration();
-	protected ITaintPropagationWrapper taintWrapper;
-	protected INativeCallHandler nativeCallHandler = new DefaultNativeCallHandler();
+	protected INativeCallHandler nativeCallHandler = null; //TODO 这个可以先不用
 	protected IIPCManager ipcManager = new DefaultIPCManager(new ArrayList<String>());
 
 	protected final BiDirICFGFactory icfgFactory;
@@ -98,19 +89,10 @@ public abstract class AbstractInfoflow implements IInfoflow {
 		this.config = config;
 	}
 
-	@Override
-	public void setTaintWrapper(ITaintPropagationWrapper wrapper) {
-		taintWrapper = wrapper;
-	}
 
 	@Override
 	public void setNativeCallHandler(INativeCallHandler handler) {
 		this.nativeCallHandler = handler;
-	}
-
-	@Override
-	public ITaintPropagationWrapper getTaintWrapper() {
-		return taintWrapper;
 	}
 
 	@Override
@@ -123,24 +105,14 @@ public abstract class AbstractInfoflow implements IInfoflow {
 		this.postProcessors = postprocessors;
 	}
 
-	@Override
-	public void computeInfoflow(String appPath, String libPath, IEntryPointCreator entryPointCreator,
-			List<String> sources, List<String> sinks) {
-		this.computeInfoflow(appPath, libPath, entryPointCreator, new DefaultSourceSinkManager(sources, sinks));
-	}
 
-	@Override
-	public void computeInfoflow(String appPath, String libPath, Collection<String> entryPoints,
-			Collection<String> sources, Collection<String> sinks) {
-		this.computeInfoflow(appPath, libPath, new DefaultEntryPointCreator(entryPoints),
-				new DefaultSourceSinkManager(sources, sinks));
-	}
-
-	@Override
-	public void computeInfoflow(String libPath, String appPath, String entryPoint, Collection<String> sources,
-			Collection<String> sinks) {
-		this.computeInfoflow(appPath, libPath, entryPoint, new DefaultSourceSinkManager(sources, sinks));
-	}
+//	@Override
+//	public void computeInfoflow(String appPath, String libPath, Collection<String> entryPoints,
+//			Collection<String> sources, Collection<String> sinks) {
+////		this.computeInfoflow(appPath, libPath, new DefaultEntryPointCreator(entryPoints),
+////				new DefaultSourceSinkManager(sources, sinks));
+//	}
+//
 
 	/**
 	 * Appends two elements to build a classpath
@@ -330,18 +302,10 @@ public abstract class AbstractInfoflow implements IInfoflow {
 		this.ipcManager = ipcManager;
 	}
 
-	@Override
-	public void setPathBuilderFactory(IPathBuilderFactory factory) {
-		this.pathBuilderFactory = factory;
-	}
-
 	/**
 	 * Constructs the callgraph
 	 */
 	protected void constructCallgraph() {
-		// Allow the ICC manager to change the Soot Scene before we continue
-		if (ipcManager != null)
-			ipcManager.updateJimpleForICC();
 
 		// Run the preprocessors
 		for (PreAnalysisHandler tr : preProcessors)

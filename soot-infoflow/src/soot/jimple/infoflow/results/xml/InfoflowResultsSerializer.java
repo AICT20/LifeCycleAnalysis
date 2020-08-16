@@ -115,17 +115,18 @@ public class InfoflowResultsSerializer {
 			writer.writeStartElement(XmlConstants.Tags.patterndata);
 			writer.writeAttribute(XmlConstants.Attributes.patterndatatype, "Pattern 1");
 			Pattern1Data data = helper.getPattern1();
-			Map<SootClass, String> entrypoints = data.getInvolvedEntrypoints();
-			if (!entrypoints.isEmpty()) {
-				writer.writeStartElement(XmlConstants.Tags.entrypoints);
-				for (SootClass sootclass : entrypoints.keySet()) {
-					writer.writeStartElement(XmlConstants.Tags.entrypoint);
-					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
-					writer.writeAttribute(XmlConstants.Attributes.entrypointposition, entrypoints.get(sootclass));
-					writer.writeEndElement();
-				}
-				writer.writeEndElement();
-			}
+			//TODO 输出 pattern的信息
+//			Map<SootClass, String> entrypoints = data.getInvolvedEntrypoints();
+//			if (!entrypoints.isEmpty()) {
+//				writer.writeStartElement(XmlConstants.Tags.entrypoints);
+//				for (SootClass sootclass : entrypoints.keySet()) {
+//					writer.writeStartElement(XmlConstants.Tags.entrypoint);
+//					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
+//					writer.writeAttribute(XmlConstants.Attributes.entrypointposition, entrypoints.get(sootclass));
+//					writer.writeEndElement();
+//				}
+//				writer.writeEndElement();
+//			}
 
 			writer.writeEndElement();
 		}
@@ -134,20 +135,20 @@ public class InfoflowResultsSerializer {
 			writer.writeAttribute(XmlConstants.Attributes.patterndatatype, "Pattern 2");
 			Pattern2Data data = helper.getPattern2();
 			writer.writeStartElement(XmlConstants.Tags.shouldCheck);
-			writer.writeAttribute(XmlConstants.Attributes.shouldCheck, data.shouldCheck() + "");
+//			writer.writeAttribute(XmlConstants.Attributes.shouldCheck, data.shouldCheck() + "");
 			writer.writeAttribute(XmlConstants.Attributes.minSdk, data.getMinSdk() + "");
 			writer.writeAttribute(XmlConstants.Attributes.targetSdk, data.getTargetSdk() + "");
 			writer.writeEndElement();
-			Set<SootClass> entrypoints = data.getEntrypoints();
-			if (!entrypoints.isEmpty()) {
-				writer.writeStartElement(XmlConstants.Tags.entrypoints);
-				for (SootClass sootclass : entrypoints) {
-					writer.writeStartElement(XmlConstants.Tags.entrypoint);
-					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
-					writer.writeEndElement();
-				}
-				writer.writeEndElement();
-			}
+//			Set<SootClass> entrypoints = data.getEntrypoints();
+//			if (!entrypoints.isEmpty()) {
+//				writer.writeStartElement(XmlConstants.Tags.entrypoints);
+//				for (SootClass sootclass : entrypoints) {
+//					writer.writeStartElement(XmlConstants.Tags.entrypoint);
+//					writer.writeAttribute(XmlConstants.Attributes.entrypointclass, sootclass.getName());
+//					writer.writeEndElement();
+//				}
+//				writer.writeEndElement();
+//			}
 		}
 		if (helper.hasPattern3()) {
 			Pattern3Data data = helper.getPattern3();

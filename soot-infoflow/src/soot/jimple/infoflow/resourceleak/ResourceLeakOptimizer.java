@@ -1,14 +1,5 @@
 package soot.jimple.infoflow.resourceleak;
 
-import soot.SootMethod;
-import soot.Unit;
-import soot.jimple.Stmt;
-import soot.jimple.infoflow.IInfoflow;
-import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
-
-import java.util.*;
 //这个不要了，废弃
 public class ResourceLeakOptimizer {
 //    private static ResourceLeakOptimizer instance = new ResourceLeakOptimizer();

@@ -12,9 +12,8 @@ import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.InfoflowConfiguration.CodeEliminationMode;
 import soot.jimple.infoflow.InfoflowConfiguration.ImplicitFlowMode;
-import soot.jimple.infoflow.InfoflowManager;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
+import soot.jimple.infoflow.pattern.sourceandsink.IPatternSourceSinkManager;
 import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.toolkits.scalar.ConditionalBranchFolder;
 import soot.jimple.toolkits.scalar.ConstantPropagatorAndFolder;
@@ -39,8 +38,7 @@ public class DeadCodeEliminator implements ICodeOptimizer {
 	}
 
 	@Override
-	public void run(InfoflowManager manager, Collection<SootMethod> entryPoints, ISourceSinkManager sourcesSinks,
-			ITaintPropagationWrapper taintWrapper) {
+	public void run(PatternInfoflowManager manager, Collection<SootMethod> entryPoints, IPatternSourceSinkManager sourcesSinks) {
 		// Perform an intra-procedural constant propagation to prepare for the
 		// inter-procedural one
 		for (QueueReader<MethodOrMethodContext> rdr = Scene.v().getReachableMethods().listener(); rdr.hasNext();) {
@@ -67,7 +65,7 @@ public class DeadCodeEliminator implements ICodeOptimizer {
 
 		// Perform an inter-procedural constant propagation and code cleanup
 		InterproceduralConstantValuePropagator ipcvp = new InterproceduralConstantValuePropagator(manager, entryPoints,
-				sourcesSinks, taintWrapper);
+				sourcesSinks);
 		ipcvp.setRemoveSideEffectFreeMethods(
 				config.getCodeEliminationMode() == CodeEliminationMode.RemoveSideEffectFreeCode
 						&& config.getImplicitFlowMode() != ImplicitFlowMode.AllImplicitFlows);

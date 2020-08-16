@@ -18,6 +18,9 @@ public class PatternDataConstant {
     public static final String ACTIVITY_ONRESTART = "void onRestart()";
     public static final String ACTIVITY_ONDESTROY = "void onDestroy()";
 
+    public static final String[] ACTIVITY_LCMETHODS = {ACTIVITY_ONCREATE, ACTIVITY_ONSTART, ACTIVITY_ONRESUME,
+            ACTIVITY_ONSAVEINSTANCESTATE, ACTIVITY_ONPAUSE, ACTIVITY_ONSTOP, ACTIVITY_ONRESTART, ACTIVITY_ONDESTROY};
+
 
     public static String FINISHMETHODSIG = "<android.app.Activity: void finish()>";
 

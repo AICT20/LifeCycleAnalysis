@@ -4,9 +4,8 @@ import java.util.Collection;
 
 import soot.SootMethod;
 import soot.jimple.infoflow.InfoflowConfiguration;
-import soot.jimple.infoflow.InfoflowManager;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
+import soot.jimple.infoflow.pattern.sourceandsink.IPatternSourceSinkManager;
 
 /**
  * Interface for all code optimization implementations
@@ -34,10 +33,7 @@ public interface ICodeOptimizer {
 	 *            The set of entry points for the data flow analysis
 	 * @param sourcesSinks
 	 *            The SourceSinkManager
-	 * @param taintWrapper
-	 *            The taint wrapper
 	 */
-    void run(InfoflowManager manager, Collection<SootMethod> entryPoints, ISourceSinkManager sourcesSinks,
-             ITaintPropagationWrapper taintWrapper);
+    void run(PatternInfoflowManager manager, Collection<SootMethod> entryPoints, IPatternSourceSinkManager sourcesSinks);
 
 }

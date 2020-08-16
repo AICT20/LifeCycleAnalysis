@@ -24,6 +24,7 @@ import soot.jimple.JimpleBody;
 import soot.jimple.NullConstant;
 import soot.jimple.Stmt;
 import soot.jimple.StringConstant;
+import soot.jimple.infoflow.pattern.entryPointCreators.AndroidEntryPointConstants;
 import soot.jimple.infoflow.pattern.patterntag.LCSPMethodTag;
 
 /**
@@ -74,6 +75,10 @@ public class LibraryClassPatcher {
 
 		// Patch the various overloads of Message.obtain()
 		patchMessageObtainImplementation();
+
+		//我们自己加的，主要用于将13年以后新的Android lib识别为 libClasses
+
+		patchNewLibImplement();
 	}
 
 	/**
@@ -717,6 +722,17 @@ public class LibraryClassPatcher {
 		b.getLocals().add(retLocal);
 		b.getUnits().add(Jimple.v().newAssignStmt(retLocal, Jimple.v().newNewExpr(scFragmentTransaction.getType())));
 		b.getUnits().add(Jimple.v().newReturnStmt(retLocal));
+	}
+
+	private void patchNewLibImplement() {
+		//先只加两个Activity的，剩余还有Fragment的没加，未来做Pattern3的时候可能需要加
+		String[] newLibClassNames = new String[] {AndroidEntryPointConstants.NEWAPPCOMPATACTIVITYCLASS, AndroidEntryPointConstants.APPCOMPATACTIVITYCLASS_ANDROIDX};
+		for (String newLibClassName : newLibClassNames) {
+			SootClass sc = Scene.v().getSootClassUnsafe(newLibClassName);
+			if (sc == null)
+				continue;
+			sc.setLibraryClass();
+		}
 	}
 
 }

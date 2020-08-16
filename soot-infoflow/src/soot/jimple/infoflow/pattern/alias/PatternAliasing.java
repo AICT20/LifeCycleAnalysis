@@ -2,20 +2,19 @@ package soot.jimple.infoflow.pattern.alias;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import fj.P;
 import heros.solver.IDESolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.infoflow.InfoflowManager;
-import soot.jimple.infoflow.aliasing.IAliasingStrategy;
-import soot.jimple.infoflow.aliasing.ImplicitFlowAliasStrategy;
-import soot.jimple.infoflow.data.Abstraction;
+import soot.jimple.infoflow.cfg.FlowDroidEssentialMethodTag;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.data.AccessPathFactory;
-import soot.jimple.infoflow.pattern.solver.NormalSolver;
+import soot.jimple.infoflow.pattern.patterndata.PatternDataHelper;
 import soot.jimple.infoflow.pattern.solver.NormalState;
 import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
+import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.infoflow.util.TypeUtils;
 import soot.jimple.toolkits.pointer.LocalMustAliasAnalysis;
 import soot.jimple.toolkits.pointer.StrongLocalMustAliasAnalysis;
@@ -43,31 +42,59 @@ public class PatternAliasing {
         this.manager = manager;
     }
 
-    public void computeAliases(final NormalState state, final Stmt src, SootMethod method) {
-        // Can we have aliases at all?
-        if (!canHaveAliases(state.getAps()))
-            return;
-        // If we are not in a conditionally-called method, we run the
-        // full alias analysis algorithm. Otherwise, we use a global
-        // non-flow-sensitive approximation.
-        aliasingStrategy.computeAliasTaints(state, src, method);
+    public static boolean isAPRelevantToInvocation(InvokeExpr exp, Set<AccessPath> aps) {
+        if(aps.isEmpty()) {return false;}
+        Set<Value> bases = new HashSet<>();
+        if (exp instanceof  InstanceInvokeExpr) {
+            bases.add(((InstanceInvokeExpr) exp).getBase());
+        }
+        bases.addAll(exp.getArgs());
+        for (AccessPath ap : aps) {
+            if (bases.contains(ap.getPlainValue())) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public static boolean canHaveAliases(Set<AccessPath> aps) {
-        if (null == aps || aps.isEmpty()) {
+
+
+    //使用Program Slicing 来计算 r0.field = x中，x初始化时可能包含的op操作
+    public boolean computeAliases(final NormalState source, AccessPath apToBw, Stmt currentStmt, boolean bwForSlice) {
+        // Can we have aliases at all?
+        if (canHaveAliases(apToBw, bwForSlice)) {
+            NormalState aliasState = source.deriveAliasState(apToBw, currentStmt, bwForSlice);
+            aliasingStrategy.computeAliasTaints(aliasState, currentStmt);
+            return true;
+        }
+        return false;
+    }
+
+    //这里特别检查一下local的情况，如果找的是local，并且单纯找alias的话，那也不用进行下去
+    private static boolean canHaveAliases(AccessPath ap , boolean bwForSlice) {
+        if (canHaveAliases(ap)) {
             return false;
         }
-        for (AccessPath ap : aps) {
-            // String cannot have aliases
-            if (TypeUtils.isStringType(ap.getBaseType()) && !ap.getCanHaveImmutableAliases())
-                continue;
-            // We never ever handle primitives as they can never have aliases
-            if (ap.isStaticFieldRef() && !(ap.getFirstFieldType() instanceof PrimType)) {
-                return true;
-            }
-            if (!(ap.getBaseType() instanceof PrimType)) {
-                return true;
-            }
+        if (!bwForSlice && ap.isLocal()) {
+            return false;
+        }
+        return true;
+    }
+
+    //特别加一句，如果ap仅仅是local的话，那么不用
+    public static boolean canHaveAliases(AccessPath ap) {
+        if (null == ap || ap.isEmpty()) {
+            return false;
+        }
+        // String cannot have aliases
+        if (TypeUtils.isStringType(ap.getBaseType()) && !ap.getCanHaveImmutableAliases())
+            return false;
+        // We never ever handle primitives as they can never have aliases
+        if (ap.isStaticFieldRef() && !(ap.getFirstFieldType() instanceof PrimType)) {
+            return true;
+        }
+        if (!(ap.getBaseType() instanceof PrimType)) {
+            return true;
         }
         return false;
     }
@@ -77,15 +104,28 @@ public class PatternAliasing {
             return baseValue.equals(ap.getPlainValue());
         } else if (baseValue instanceof InstanceFieldRef) {
             InstanceFieldRef ifr = (InstanceFieldRef) baseValue;
-            return ifr.getBase().equals(ap.getPlainValue())
-                    && ap.firstFieldMatches(ifr.getField());
+                return ifr.getBase().equals(ap.getPlainValue())
+                        && ap.firstFieldMatches(ifr.getField());
+
         } else if (baseValue instanceof StaticFieldRef) {
             StaticFieldRef sfr = (StaticFieldRef) baseValue;
             return ap.firstFieldMatches(sfr.getField());
         }
         return false;
     }
-    public static boolean baseMatchesStrict(final Value baseValue, AccessPath ap) {
+
+    public static boolean baseMatchesStrict(final Value baseValue, NormalState state) {
+        for (AccessPath ap : state.getAps()) {
+            if (baseMatchesStrict(baseValue, ap)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
+    private static boolean baseMatchesStrict(final Value baseValue, AccessPath ap) {
         if (!baseMatches(baseValue, ap))
             return false;
 
@@ -146,6 +186,23 @@ public class PatternAliasing {
         SootField[] fields = val instanceof FieldRef ? new SootField[] { ((FieldRef) val).getField() }
                 : new SootField[0];
         return getReferencedAPBase(ap, fields);
+    }
+
+    public boolean mayAlias(Value val1, Value val2) {
+        // What cannot be represented in an access path cannot alias
+        if (!AccessPath.canContainValue(val1) || !AccessPath.canContainValue(val2))
+            return false;
+        // Constants can never alias
+        if (val1 instanceof Constant || val2 instanceof Constant)
+            return false;
+        // If the two values are equal, they alias by definition
+        if (val1 == val2)
+            return true;
+//        // If we have an interactive aliasing algorithm, we check that as well
+//        if (aliasingStrategy.isInteractive())
+//            return aliasingStrategy.mayAlias(manager.getAccessPathFactory().createAccessPath(val1, false),
+//                    manager.getAccessPathFactory().createAccessPath(val2, false));
+        return false;
     }
 
     public boolean mustAlias(SootField field1, SootField field2) {

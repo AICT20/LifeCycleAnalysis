@@ -23,11 +23,6 @@ public class Pattern3Data extends PatternData {
     }
 
 
-    @Override
-    public void searchForSeedMethods(BiDiInterproceduralCFG<Unit, SootMethod> icfg) {
-//        seedMethods = searchForSeedMethods(icfg, "void onSaveInstanceState(android.os.Bundle)");
-
-    }
 
 
     @Override
@@ -36,19 +31,15 @@ public class Pattern3Data extends PatternData {
     }
 
     @Override
-    public Set<SootClass> getEntrypoints() {
-        Set<SootClass> allEntrypoints = new HashSet<>();
-        if (null != v4Fragments) {
-            allEntrypoints.addAll(v4Fragments.keySet());
-        }
-        if (null != androidFragments) {
-            allEntrypoints.addAll(androidFragments.keySet());
-        }
-        if (null != androidxFragments) {
-            allEntrypoints.addAll(androidxFragments.keySet());
-        }
-        return allEntrypoints;
+    protected Map<SootClass, PatternEntryData> getInitialEntryClasses(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
+        return null;
     }
+
+    @Override
+    protected void updateEntryDataWithLCMethods(SootClass cClass, PatternEntryData cData) {
+
+    }
+
 
     public void updateFragments(SootClass activity, SootClass fragment, String typestr) {
         Map<SootClass, Set<SootClass>> insertMap = null;

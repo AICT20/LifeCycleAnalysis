@@ -37,7 +37,15 @@ public class Pattern2Data extends PatternData {
             if (null == onStopMethod) {continue;}
             SootMethod onSaveMethod = cClass.getMethodUnsafe(PatternDataConstant.ACTIVITY_ONSAVEINSTANCESTATE);
             if (null == onSaveMethod) {continue;}
-            newEntrypoints.put(cClass, new PatternEntryData(cClass));
+            PatternEntryData cData = new PatternEntryData(cClass);
+            newEntrypoints.put(cClass, cData);
+            updateEntryDataWithLCMethods(cClass, cData);
+            boolean hasInvolvedFields =  updateInvolvedFieldsInEntryDatas(icfg, cClass, cData);
+            if (!hasInvolvedFields) {
+                newEntrypoints.remove(cClass);
+            } else {
+                newEntrypoints.put(cClass, cData);
+            }
         }
         return newEntrypoints;
     }

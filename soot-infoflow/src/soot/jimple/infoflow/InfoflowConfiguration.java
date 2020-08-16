@@ -1797,4 +1797,24 @@ public class InfoflowConfiguration {
         return writeOutputFiles == other.writeOutputFiles;
     }
 
+
+	private String mappingMethodsFile = "";
+	private boolean shouldTaintSubfieldsAndChildren = false;
+
+	public void setMappingMethodsFile(String mappingMethodsFile) {
+		this.mappingMethodsFile = mappingMethodsFile;
+	}
+
+	public String getMappingMethodsFile() {
+		return this.mappingMethodsFile = mappingMethodsFile;
+	}
+
+	public void setTaintSubfieldsAndChildren(boolean shouldTaintSubfieldsAndChildren) {
+		this.shouldTaintSubfieldsAndChildren = shouldTaintSubfieldsAndChildren;
+	}
+
+	public boolean shouldTaintSubfieldsAndChildren() {
+		return this.shouldTaintSubfieldsAndChildren;
+	}
+
 }

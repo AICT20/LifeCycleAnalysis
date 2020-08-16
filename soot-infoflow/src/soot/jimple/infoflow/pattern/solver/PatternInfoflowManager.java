@@ -2,30 +2,33 @@ package soot.jimple.infoflow.pattern.solver;
 
 import soot.FastHierarchy;
 import soot.jimple.infoflow.InfoflowConfiguration;
-import soot.jimple.infoflow.aliasing.Aliasing;
 import soot.jimple.infoflow.data.AccessPathFactory;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
 import soot.jimple.infoflow.pattern.alias.PatternAliasing;
-import soot.jimple.infoflow.solver.IInfoflowSolver;
+import soot.jimple.infoflow.pattern.patternresource.LCResourceOPHelper;
+import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
+import soot.jimple.infoflow.pattern.sourceandsink.IPatternSourceSinkManager;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
 import soot.jimple.infoflow.util.TypeUtils;
 
 public class PatternInfoflowManager {
     private final InfoflowConfiguration config;
     private NormalSolver forwardSolver;
     private final IInfoflowCFG icfg;
-    private final ISourceSinkManager sourceSinkManager;
+    private final IPatternSourceSinkManager sourceSinkManager;
     private final TypeUtils typeUtils;
     private final FastHierarchy hierarchy;
     private final AccessPathFactory accessPathFactory;
     private PatternAliasing aliasing;
+    private LCResourceOPHelper ophelper;
+    private LCMethodSummaryResult result;
 
-    public PatternInfoflowManager(InfoflowConfiguration config, NormalSolver forwardSolver, IInfoflowCFG icfg, ISourceSinkManager sourceSinkManager,
+    public PatternInfoflowManager(InfoflowConfiguration config, NormalSolver forwardSolver, IInfoflowCFG icfg, IPatternSourceSinkManager sourceSinkManager, LCResourceOPHelper ophelper,
                                   FastHierarchy hierarchy, AccessPathFactory accessPathFactory) {
         this.config = config;
         this.forwardSolver = forwardSolver;
         this.icfg = icfg;
+        this.ophelper = ophelper;
         this.sourceSinkManager = sourceSinkManager;
         this.typeUtils = new TypeUtils(this);;
         this.hierarchy = hierarchy;
@@ -43,7 +46,7 @@ public class PatternInfoflowManager {
     public IInfoflowCFG getICFG() {
         return this.icfg;
     }
-    public ISourceSinkManager getSourceSinkManager() {
+    public IPatternSourceSinkManager getSourceSinkManager() {
         return this.sourceSinkManager;
     }
     public TypeUtils getTypeUtils() {
@@ -55,6 +58,10 @@ public class PatternInfoflowManager {
     public AccessPathFactory getAccessPathFactory() {
         return this.accessPathFactory;
     }
+    public LCMethodSummaryResult getResult(){return this.result;}
+    public void setResult(LCMethodSummaryResult result){this.result = result;}
+
+
     public boolean isAnalysisAborted() {
         if (forwardSolver instanceof IMemoryBoundedSolver)
             return ((IMemoryBoundedSolver) forwardSolver).isKilled();
@@ -70,5 +77,5 @@ public class PatternInfoflowManager {
     public PatternAliasing getAliasing() {
         return aliasing;
     }
-
+    public LCResourceOPHelper getLCResourceOPHelper(){return  this.ophelper;}
 }

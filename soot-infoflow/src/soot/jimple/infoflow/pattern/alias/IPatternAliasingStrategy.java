@@ -1,20 +1,14 @@
 package soot.jimple.infoflow.pattern.alias;
 
 import soot.SootMethod;
-import soot.Unit;
-import soot.Value;
 import soot.jimple.Stmt;
-import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.pattern.solver.NormalSolver;
 import soot.jimple.infoflow.pattern.solver.NormalState;
-import soot.jimple.infoflow.solver.IInfoflowSolver;
-
-import java.util.Set;
 
 public interface IPatternAliasingStrategy {
 
-    void computeAliasTaints(final NormalState source, final Stmt src, SootMethod method);
+    void computeAliasTaints(final NormalState aliasState, final Stmt srcm);
 
 
 //    /**

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import soot.jimple.infoflow.collect.ConcurrentHashSet;
 import soot.jimple.infoflow.memory.MemoryWarningSystem.OnMemoryThresholdReached;
 import soot.jimple.infoflow.memory.reasons.OutOfMemoryReason;
+import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
 import soot.jimple.infoflow.results.InfoflowResults;
 
 /**
@@ -22,7 +23,7 @@ public class FlowDroidMemoryWatcher {
 	private final MemoryWarningSystem warningSystem = new MemoryWarningSystem();
 
 	private final Set<IMemoryBoundedSolver> solvers = new ConcurrentHashSet<>();
-	private final InfoflowResults results;
+	private final LCMethodSummaryResult results;
 
 	/**
 	 * Creates a new instance of the {@link FlowDroidMemoryWatcher} class
@@ -45,7 +46,7 @@ public class FlowDroidMemoryWatcher {
 	 * 
 	 * @param res The result object in which to register any abortions
 	 */
-	public FlowDroidMemoryWatcher(InfoflowResults res) {
+	public FlowDroidMemoryWatcher(LCMethodSummaryResult res) {
 		this(res, 0.9d);
 	}
 
@@ -55,7 +56,7 @@ public class FlowDroidMemoryWatcher {
 	 * @param res       The result object in which to register any abortions
 	 * @param threshold The threshold at which to abort the workers
 	 */
-	public FlowDroidMemoryWatcher(InfoflowResults res, double threshold) {
+	public FlowDroidMemoryWatcher(LCMethodSummaryResult res, double threshold) {
 		// Register ourselves in the warning system
 		warningSystem.addListener(new OnMemoryThresholdReached() {
 

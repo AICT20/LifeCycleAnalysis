@@ -19,23 +19,14 @@ import javax.xml.stream.XMLStreamException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 import org.xmlpull.v1.XmlPullParserException;
 
 import heros.solver.Pair;
-import soot.G;
-import soot.Main;
-import soot.PackManager;
-import soot.Scene;
-import soot.SootClass;
-import soot.SootMethod;
-import soot.Unit;
-import soot.jimple.Stmt;
+import soot.*;
 import soot.jimple.infoflow.AbstractInfoflow;
 import soot.jimple.infoflow.IInfoflow;
 import soot.jimple.infoflow.Infoflow;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration.CallbackConfiguration;
-import soot.jimple.infoflow.android.InfoflowAndroidConfiguration.IccConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration.SootIntegrationMode;
 import soot.jimple.infoflow.android.callbacks.AbstractCallbackAnalyzer;
 import soot.jimple.infoflow.android.callbacks.CallbackDefinition;
@@ -47,10 +38,6 @@ import soot.jimple.infoflow.android.callbacks.filters.AlienHostComponentFilter;
 import soot.jimple.infoflow.android.callbacks.filters.ApplicationCallbackFilter;
 import soot.jimple.infoflow.android.callbacks.filters.UnreachableConstructorFilter;
 import soot.jimple.infoflow.android.config.SootConfigForAndroid;
-import soot.jimple.infoflow.android.data.AndroidMemoryManager;
-import soot.jimple.infoflow.android.data.parsers.PermissionMethodParser;
-import soot.jimple.infoflow.android.iccta.IccInstrumenter;
-import soot.jimple.infoflow.android.iccta.IccResults;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.infoflow.android.resources.ARSCFileParser;
 import soot.jimple.infoflow.android.resources.ARSCFileParser.AbstractResource;
@@ -58,19 +45,23 @@ import soot.jimple.infoflow.android.resources.ARSCFileParser.StringResource;
 import soot.jimple.infoflow.android.resources.LayoutFileParser;
 import soot.jimple.infoflow.android.resources.controls.AndroidLayoutControl;
 import soot.jimple.infoflow.android.results.xml.InfoflowResultsSerializer;
-import soot.jimple.infoflow.android.source.ConfigurationBasedCategoryFilter;
-import soot.jimple.infoflow.android.source.PatternSourceSinkManager;
+import soot.jimple.infoflow.pattern.entryPointCreators.PatternMainEntryPointCreator;
+import soot.jimple.infoflow.pattern.mappingmethods.MappingMethodHelper;
+import soot.jimple.infoflow.pattern.mappingmethods.MappingMethodProvider;
+import soot.jimple.infoflow.pattern.patternresource.LCResourceOPHelper;
+import soot.jimple.infoflow.pattern.result.LCMethodResultsAvailableHandler;
+import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
+import soot.jimple.infoflow.pattern.result.PatternResultsSerializer;
+import soot.jimple.infoflow.pattern.sourceandsink.IPatternSourceSinkManager;
+import soot.jimple.infoflow.pattern.sourceandsink.PatternOpDataProvider;
+import soot.jimple.infoflow.pattern.sourceandsink.PatternSourceSinkManager;
 import soot.jimple.infoflow.android.source.UnsupportedSourceSinkFormatException;
-import soot.jimple.infoflow.android.source.parsers.xml.XMLSourceSinkParser;
 import soot.jimple.infoflow.cfg.BiDirICFGFactory;
 import soot.jimple.infoflow.cfg.LibraryClassPatcher;
 import soot.jimple.infoflow.config.IInfoflowConfig;
-import soot.jimple.infoflow.data.Abstraction;
-import soot.jimple.infoflow.data.FlowDroidMemoryManager.PathDataErasureMode;
 import soot.jimple.infoflow.handlers.PostAnalysisHandler;
 import soot.jimple.infoflow.handlers.PreAnalysisHandler;
 import soot.jimple.infoflow.handlers.ResultsAvailableHandler;
-import soot.jimple.infoflow.handlers.TaintPropagationHandler;
 import soot.jimple.infoflow.ipc.IIPCManager;
 import soot.jimple.infoflow.memory.FlowDroidMemoryWatcher;
 import soot.jimple.infoflow.memory.FlowDroidTimeoutWatcher;
@@ -78,26 +69,20 @@ import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
 import soot.jimple.infoflow.pattern.patterndata.PatternDataHelper;
 import soot.jimple.infoflow.results.InfoflowPerformanceData;
 import soot.jimple.infoflow.results.InfoflowResults;
-import soot.jimple.infoflow.rifl.RIFLSourceSinkDefinitionProvider;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
-import soot.jimple.infoflow.solver.memory.IMemoryManager;
-import soot.jimple.infoflow.solver.memory.IMemoryManagerFactory;
-import soot.jimple.infoflow.sourcesSinks.definitions.ISourceSinkDefinitionProvider;
-import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
-import soot.jimple.infoflow.taintWrappers.ITaintWrapperDataFlowAnalysis;
 import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.infoflow.values.IValueProvider;
+import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
 import soot.util.HashMultiMap;
 import soot.util.MultiMap;
 
-public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
+public class SetupApplication{
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	protected ISourceSinkDefinitionProvider sourceSinkProvider;
+	protected PatternOpDataProvider patternOpDataProvider;
+	protected MappingMethodProvider mappingMethodProvider;
 	protected MultiMap<SootClass, CallbackDefinition> callbackMethods = new HashMultiMap<>();
 	protected MultiMap<SootClass, SootClass> fragmentClasses = new HashMultiMap<>();
 
@@ -106,32 +91,25 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 
 	protected Set<SootClass> entrypoints = null;
 	protected Set<String> callbackClasses = null;
-	protected IccInstrumenter iccInstrumenter = null;
 
 	protected ARSCFileParser resources = null;
 	protected ProcessManifest manifest = null;
 	protected IValueProvider valueProvider = null;
 
 	protected final boolean forceAndroidJar;
-	protected ITaintPropagationWrapper taintWrapper;
 
-	protected ISourceSinkManager sourceSinkManager = null;
+	protected IPatternSourceSinkManager sourceSinkManager = null;
 
 	protected IInfoflowConfig sootConfig = new SootConfigForAndroid();
 	protected BiDirICFGFactory cfgFactory = null;
 
 	protected IIPCManager ipcManager = null;
 
-	protected Set<Stmt> collectedSources = null;
-	protected Set<Stmt> collectedSinks = null;
-
 	protected String callbackFile = "AndroidCallbacks.txt";
 	protected SootClass scView = null;
 
 	protected Set<PreAnalysisHandler> preprocessors = new HashSet<>();
-	protected Set<ResultsAvailableHandler> resultsAvailableHandlers = new HashSet<>();
-	protected TaintPropagationHandler taintPropagationHandler = null;
-	protected TaintPropagationHandler backwardsPropagationHandler = null;
+	protected Set<LCMethodResultsAvailableHandler> resultsAvailableHandlers = new HashSet<>();
 
 	protected IInPlaceInfoflow infoflow = null;
 
@@ -142,14 +120,14 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @author Steven Arzt
 	 *
 	 */
-	private static class MultiRunResultAggregator implements ResultsAvailableHandler {
+	private static class MultiRunResultAggregator implements LCMethodResultsAvailableHandler {
 
-		private final InfoflowResults aggregatedResults = new InfoflowResults();
-		private InfoflowResults lastResults = null;
+		private final LCMethodSummaryResult aggregatedResults = new LCMethodSummaryResult();
+		private LCMethodSummaryResult lastResults = null;
 		private IInfoflowCFG lastICFG = null;
 
 		@Override
-		public void onResultsAvailable(IInfoflowCFG cfg, InfoflowResults results) {
+		public void onResultsAvailable(IInfoflowCFG cfg, LCMethodSummaryResult results) {
 			this.aggregatedResults.addAll(results);
 			this.lastResults = results;
 			this.lastICFG = cfg;
@@ -160,7 +138,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		 * 
 		 * @return All data flow results aggregated so far
 		 */
-		public InfoflowResults getAggregatedResults() {
+		public LCMethodSummaryResult getAggregatedResults() {
 			return this.aggregatedResults;
 		}
 
@@ -170,7 +148,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		 * 
 		 * @return The results from the last run of the data flow analysis
 		 */
-		public InfoflowResults getLastResults() {
+		public LCMethodSummaryResult getLastResults() {
 			return this.lastResults;
 		}
 
@@ -270,77 +248,6 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		}
 	}
 
-	/**
-	 * Gets the set of sinks loaded into FlowDroid These are the sinks as they are
-	 * defined through the SourceSinkManager.
-	 * 
-	 * @return The set of sinks loaded into FlowDroid
-	 */
-	public Set<SourceSinkDefinition> getSinks() {
-		return this.sourceSinkProvider == null ? null : this.sourceSinkProvider.getSinks();
-	}
-
-	/**
-	 * Gets the concrete instances of sinks that have been collected inside the app.
-	 * This method returns null if source and sink logging has not been enabled (see
-	 * InfoflowConfiguration.setLogSourcesAndSinks()).
-	 * 
-	 * @return The set of concrete sink instances in the app
-	 */
-	public Set<Stmt> getCollectedSinks() {
-		return collectedSinks;
-	}
-
-	/**
-	 * Prints the list of sinks registered with FlowDroud to stdout
-	 */
-	public void printSinks() {
-		if (this.sourceSinkProvider == null) {
-			logger.error("Sinks not calculated yet");
-			return;
-		}
-		logger.info("Sinks:");
-		for (SourceSinkDefinition am : getSinks()) {
-			logger.info(String.format("- %s", am.toString()));
-		}
-		logger.info("End of Sinks");
-	}
-
-	/**
-	 * Gets the set of sources loaded into FlowDroid. These are the sources as they
-	 * are defined through the SourceSinkManager.
-	 * 
-	 * @return The set of sources loaded into FlowDroid
-	 */
-	public Set<SourceSinkDefinition> getSources() {
-		return this.sourceSinkProvider == null ? null : this.sourceSinkProvider.getSources();
-	}
-
-	/**
-	 * Gets the concrete instances of sources that have been collected inside the
-	 * app. This method returns null if source and sink logging has not been enabled
-	 * (see InfoflowConfiguration.setLogSourcesAndSinks()).
-	 * 
-	 * @return The set of concrete source instances in the app
-	 */
-	public Set<Stmt> getCollectedSources() {
-		return collectedSources;
-	}
-
-	/**
-	 * Prints the list of sources registered with FlowDroud to stdout
-	 */
-	public void printSources() {
-		if (this.sourceSinkProvider == null) {
-			logger.error("Sources not calculated yet");
-			return;
-		}
-		logger.info("Sources:");
-		for (SourceSinkDefinition am : getSources()) {
-			logger.info(String.format("- %s", am.toString()));
-		}
-		logger.info("End of Sources");
-	}
 
 	/**
 	 * Gets the set of classes containing entry point methods for the lifecycle
@@ -379,17 +286,6 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	public Set<String> getCallbackClasses() {
 		return callbackClasses;
 	}
-
-	@Override
-	public void setTaintWrapper(ITaintPropagationWrapper taintWrapper) {
-		this.taintWrapper = taintWrapper;
-	}
-
-	@Override
-	public ITaintPropagationWrapper getTaintWrapper() {
-		return this.taintWrapper;
-	}
-
 	/**
 	 * Parses common app resources such as the manifest file
 	 * 
@@ -419,28 +315,10 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		logger.info("ARSC file parsing took " + (System.nanoTime() - beforeARSC) / 1E9 + " seconds");
 	}
 
-	/**
-	 * Calculates the sets of sources, sinks, entry points, and callbacks methods
-	 * for the given APK file.
-	 * 
-	 * @param sourcesAndSinks A provider from which the analysis can obtain the list
-	 *                        of sources and sinks
-	 * @throws IOException            Thrown if the given source/sink file could not
-	 *                                be read.
-	 * @throws XmlPullParserException Thrown if the Android manifest file could not
-	 *                                be read.
-	 */
-	private void calculateCallbacks(ISourceSinkDefinitionProvider sourcesAndSinks)
-			throws IOException, XmlPullParserException {
-		calculateCallbacks(sourcesAndSinks, null);
-	}
 
 	/**
 	 * Calculates the sets of sources, sinks, entry points, and callbacks methods
 	 * for the entry point in the given APK file.
-	 * 
-	 * @param sourcesAndSinks A provider from which the analysis can obtain the list
-	 *                        of sources and sinks
 	 * @param entryPoint      The entry point for which to calculate the callbacks.
 	 *                        Pass null to calculate callbacks for all entry points.
 	 * @throws IOException            Thrown if the given source/sink file could not
@@ -448,7 +326,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @throws XmlPullParserException Thrown if the Android manifest file could not
 	 *                                be read.
 	 */
-	private void calculateCallbacks(ISourceSinkDefinitionProvider sourcesAndSinks, SootClass entryPoint)
+	private void calculateCallbacks(SootClass entryPoint)
 			throws IOException, XmlPullParserException {
 		// Add the callback methods
 		LayoutFileParser lfp = null;
@@ -471,20 +349,13 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		} else if (config.getSootIntegrationMode().needsToBuildCallgraph()) {
 			// Create the new iteration of the main method
 //			createMainMethod(null);
-			updateLCMethodRecords(null);
 			constructCallgraphInternal();
+			updateLCMethodRecords(null);
 		}
 
 		logger.info("Entry point calculation done.");
 
-		if (this.sourceSinkProvider != null) {
-			// Get the callbacks for the current entry point
-			Set<CallbackDefinition> callbacks;
-			if (entryPoint == null)
-				callbacks = this.callbackMethods.values();
-			else
-				callbacks = this.callbackMethods.get(entryPoint);
-
+		if (this.patternOpDataProvider != null) {
 			// Create the SourceSinkManager
 			sourceSinkManager = createPatternSourceSinkManager();
 //			sourceSinkManager = createSourceSinkManager(lfp, callbacks);
@@ -520,7 +391,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 //	}
 
 	//用我们自己的PatternSourceSinkManager来代替Access....
-	protected ISourceSinkManager createPatternSourceSinkManager() {
+	protected IPatternSourceSinkManager createPatternSourceSinkManager() {
 		PatternSourceSinkManager sourceSinkManager = new PatternSourceSinkManager(PatternDataHelper.v().getInvolvedEntrypoints());
 		sourceSinkManager.setAppPackageName(this.manifest.getPackageName());
 		return sourceSinkManager;
@@ -554,9 +425,6 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		logger.info("Constructing the callgraph...");
 		PackManager.v().getPack("cg").apply();
 
-		// ICC instrumentation
-		if (iccInstrumenter != null)
-			iccInstrumenter.onAfterCallgraphConstruction();
 
 		// Run the preprocessors
 		for (PreAnalysisHandler handler : this.preprocessors)
@@ -722,12 +590,11 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			//只能在循环中不断更新Pattern，因为callgraph的构建和jimple的构建是一起的
 			//lifecycle-add 这里可以考虑先更新一波Pattern中的嫌疑Component
 
-			updateLCMethodRecords(null);
-//			PatternDataHelper.v().updateDummyMainMethod(mainmethod);
 			releaseCallgraph();
 			PackManager.v().getPack("wjtp").remove("wjtp.lfp");
-			constructCallgraphInternal();
-			PackManager.v().getPack("wjtp").apply();
+			updateLCMethodRecords(this.entrypoints);//注意！！！！！！！！！！！cfg的构建放在updateLCMethodRecords里了，所以外面的就不需要了！！！！
+//			constructCallgraphInternal();
+//			PackManager.v().getPack("wjtp").apply();
 			//其他的应该不会变了
 			System.out.println("Pattern adaptation complete!");
 
@@ -767,6 +634,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 					componentIt.remove();
 			}
 		}
+
 
 		// Make sure that we don't retain any weird Soot phases
 		PackManager.v().getPack("wjtp").remove("wjtp.lfp");
@@ -997,12 +865,47 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		}
 	}
 
-	//TODO 仿照并取代下面createMainMethod()，但是不创建main函数，而且
+	//仿照并取代下面createMainMethod(), 还是构建Main函数，似乎直接从onCreate等函数作为entrypoints的话会有bug，分析异常
+	private PatternMainEntryPointCreator entryPointCreator = null;
 	private void updateLCMethodRecords(Set<SootClass> entrypoints) {
-//		 components = getComponentsToAnalyze(component);
 		PatternDataHelper helper = PatternDataHelper.v();
+		//临时创建一个main
+		if (entryPointCreator == null)
+			entryPointCreator = new PatternMainEntryPointCreator(entrypoints);
+		else {
+			entryPointCreator.resetAndRemoveAllGeneratedClasses();
+		}
+		MultiMap<SootClass, SootMethod> callbackMethodSigs = new HashMultiMap<>();
+		// Get all callbacks for all components
+		for (SootClass sc : this.callbackMethods.keySet()) {
+			Set<CallbackDefinition> callbackDefs = this.callbackMethods.get(sc);
+			if (callbackDefs != null)
+				for (CallbackDefinition cd : callbackDefs)
+					callbackMethodSigs.put(sc, cd.getTargetMethod());
+		}
+		entryPointCreator.setCallbackFunctions(callbackMethodSigs);
+//		entryPointCreator.setFragments(fragmentClasses);
+		Set<Pair<SootMethod, SootMethod>> dummyMainMethods = entryPointCreator.create();
+		List<SootMethod> tempEntrypoints = new LinkedList<>();
+		for (Pair<SootMethod, SootMethod> pair : dummyMainMethods) {
+			tempEntrypoints.add(pair.getO2());
+		}
+
+		Scene.v().setEntryPoints(tempEntrypoints);
+		for (SootMethod m :tempEntrypoints) {
+			if (!m.getDeclaringClass().isInScene())
+				Scene.v().addClass(m.getDeclaringClass());
+			m.getDeclaringClass().setApplicationClass();
+		}
+		constructCallgraphInternal();
+		PackManager.v().getPack("wjtp").apply();
+
 		helper.updateInvolvedEntrypoints(entrypoints, null);
-//		PatternDataHelper.v().updateEntryLifeCycleMethodsTags(entrypoints);//这个要放在后面，因为Pattern2是在createMainMethod的时候动态确认involvedentrypoints
+//		entryPointCreator.removeIrrelevantComponents(helper.getInvolvedEntrypoints());
+//
+//		releaseCallgraph();
+//		PackManager.v().getPack("wjtp").remove("wjtp.lfp");
+
 		Scene.v().setEntryPoints(new LinkedList<>(helper.getEntryMethods()));
 	}
 
@@ -1039,7 +942,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * 
 	 * @return FlowDroid's source/sink manager
 	 */
-	public ISourceSinkManager getSourceSinkManager() {
+	public IPatternSourceSinkManager getSourceSinkManager() {
 		return sourceSinkManager;
 	}
 
@@ -1091,13 +994,19 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		Options.v().set_throw_analysis(Options.throw_analysis_dalvik);
 		Options.v().set_process_multiple_dex(config.getMergeDexFiles());
 		Options.v().set_ignore_resolution_errors(true);
-
+		Scene.v().addBasicClass("java.io.PrintStream", SootClass.SIGNATURES);
+		Scene.v().addBasicClass("java.lang.System", SootClass.SIGNATURES);
 		// Set the Soot configuration options. Note that this will needs to be
 		// done before we compute the classpath.
 		if (sootConfig != null)
 			sootConfig.setSootOptions(Options.v(), config);
 		Options.v().set_process_multiple_dex(true);
 		Options.v().set_soot_classpath(getClasspath());
+		//我们额外加的
+		Options.v().ignore_classpath_errors();
+		Options.v().ignore_resolution_errors();
+		Options.v().ignore_resolving_levels();
+
 		Main.v().autoSetOptions();
 		configureCallgraph();
 
@@ -1159,7 +1068,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 */
 	protected static interface IInPlaceInfoflow extends IInfoflow {
 
-		public void runAnalysis(final ISourceSinkManager sourcesSinks, SootMethod entryPoint);
+		public void runAnalysis(final IPatternSourceSinkManager sourcesSinks, SootMethod entryPoint);
 
 	}
 
@@ -1196,7 +1105,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		}
 
 		@Override
-		public void runAnalysis(final ISourceSinkManager sourcesSinks, SootMethod entryPoint) {
+		public void runAnalysis(final IPatternSourceSinkManager sourcesSinks, SootMethod entryPoint) {
 			this.dummyMainMethod = entryPoint;
 			super.runAnalysis(sourcesSinks);
 		}
@@ -1211,7 +1120,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @throws XmlPullParserException Thrown if the Android manifest file could not
 	 *                                be read.
 	 */
-	public InfoflowResults runInfoflow() throws IOException, XmlPullParserException {
+	public LCMethodSummaryResult runInfoflow() throws IOException {
 		// If we don't have a source/sink file by now, we cannot run the data
 		// flow analysis
 		String sourceSinkFile = config.getAnalysisFileConfig().getSourceSinkFile();
@@ -1221,35 +1130,29 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		fileExtension = fileExtension.toLowerCase();
 
 
-		ISourceSinkDefinitionProvider parser = null;
-		try {
-			if (fileExtension.equals(".xml")) {
-				parser = XMLSourceSinkParser.fromFile(sourceSinkFile,
-						new ConfigurationBasedCategoryFilter(config.getSourceSinkConfig()));
-			} else if (fileExtension.equals(".txt"))//下面改成我们的
-				parser = PermissionMethodParser.fromFile(sourceSinkFile);
-			else if (fileExtension.equals(".rifl"))
-				parser = new RIFLSourceSinkDefinitionProvider(sourceSinkFile);
-			else
+//		try {
+//			if (fileExtension.equals(".xml")) {
+//				parser = XMLSourceSinkParser.fromFile(sourceSinkFile,
+//						new ConfigurationBasedCategoryFilter(config.getSourceSinkConfig()));
+//			} else if (fileExtension.equals(".txt"))//下面改成我们的
+//				parser = PermissionMethodParser.fromFile(sourceSinkFile);
+//			else if (fileExtension.equals(".rifl"))
+//				parser = new RIFLSourceSinkDefinitionProvider(sourceSinkFile);
+			if (!fileExtension.equals(".xml"))
 				throw new UnsupportedSourceSinkFormatException("The Inputfile isn't a .txt or .xml file.");
-		} catch (SAXException ex) {
-			throw new IOException("Could not read XML file", ex);
-		}
+//		} catch (SAXException ex) {
+//			throw new IOException("Could not read XML file", ex);
+//		}
 
-		return runInfoflow(parser);
+		return runInfoflow(sourceSinkFile);
 	}
 
 	/**
 	 * Runs the data flow analysis.
-	 * 
-	 * @param sourcesAndSinks The sources and sinks of the data flow analysis
-	 * @return The results of the data flow analysis
+	 *
 	 */
-	public InfoflowResults runInfoflow(ISourceSinkDefinitionProvider sourcesAndSinks) {
+	public LCMethodSummaryResult runInfoflow(String opxmlfilepath) throws IOException {
 		// Reset our object state
-		this.collectedSources = config.getLogSourcesAndSinks() ? new HashSet<Stmt>() : null;
-		this.collectedSinks = config.getLogSourcesAndSinks() ? new HashSet<Stmt>() : null;
-		this.sourceSinkProvider = sourcesAndSinks;
 		this.infoflow = null;
 
 		// Perform some sanity checks on the configuration
@@ -1263,6 +1166,13 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			G.reset();
 			initializeSoot();
 		}
+		patternOpDataProvider = PatternOpDataProvider.fromFile(opxmlfilepath);
+		String mmfilename = config.getMappingMethodsFile();
+		if (null != mmfilename) {
+			mappingMethodProvider = MappingMethodProvider.fromFile(config, mmfilename);
+			MappingMethodHelper.v().init(mappingMethodProvider.getAllDefs());
+		}
+		LCResourceOPHelper ophelper = LCResourceOPHelper.init(patternOpDataProvider);
 
 		// Perform basic app parsing
 		try {
@@ -1288,10 +1198,10 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			List<SootClass> entrypointWorklist = new ArrayList<>(entrypoints);
 			while (!entrypointWorklist.isEmpty()) {
 				SootClass entrypoint = entrypointWorklist.remove(0);
-				processEntryPoint(sourcesAndSinks, resultAggregator, entrypointWorklist.size(), entrypoint);
+				processEntryPoint(ophelper, resultAggregator, entrypointWorklist.size(), entrypoint);
 			}
 		} else
-			processEntryPoint(sourcesAndSinks, resultAggregator, -1, null);
+			processEntryPoint(ophelper, resultAggregator, -1, null);
 
 		// Write the results to disk if requested
 		serializeResults(resultAggregator.getAggregatedResults(), resultAggregator.getLastICFG());//生成xml文件的入口
@@ -1305,15 +1215,13 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 
 	/**
 	 * Runs the data flow analysis on the given entry point class
-	 * 
-	 * @param sourcesAndSinks  The sources and sinks on which to run the data flow
-	 *                         analysis
+	 *
 	 * @param resultAggregator An object for aggregating the results from the
 	 *                         individual data flow runs
 	 * @param numEntryPoints   The total number of runs (for logging)
 	 * @param entrypoint       The current entry point to analyze
 	 */
-	protected void processEntryPoint(ISourceSinkDefinitionProvider sourcesAndSinks,
+	protected void processEntryPoint(LCResourceOPHelper ophelper,
 			MultiRunResultAggregator resultAggregator, int numEntryPoints, SootClass entrypoint) {
 		long beforeEntryPoint = System.nanoTime();
 
@@ -1324,9 +1232,9 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		long callbackDuration = System.nanoTime();
 		try {
 			if (config.getOneComponentAtATime())
-				calculateCallbacks(sourcesAndSinks, entrypoint);
+				calculateCallbacks(entrypoint);
 			else
-				calculateCallbacks(sourcesAndSinks); //这里才是进行dummarymethod的构建
+				calculateCallbacks(null); //这里才是进行dummarymethod的构建
 		} catch (IOException | XmlPullParserException e) {
 			logger.error("Callgraph construction failed: " + e.getMessage(), e);
 			throw new RuntimeException("Callgraph construction failed", e);
@@ -1334,18 +1242,6 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		callbackDuration = Math.round((System.nanoTime() - callbackDuration) / 1E9);
 		logger.info(
 				String.format("Collecting callbacks and building a callgraph took %d seconds", (int) callbackDuration));
-
-		final Set<SourceSinkDefinition> sources = getSources();
-		logger.info("sources num: " + sources.size());
-		final Set<SourceSinkDefinition> sinks = getSinks();
-		final String apkFileLocation = config.getAnalysisFileConfig().getTargetAPKFile();
-		if (config.getOneComponentAtATime())
-			logger.info("Running data flow analysis on {} (component {}/{}: {}) with {} sources and {} sinks...",
-					apkFileLocation, (entrypoints.size() - numEntryPoints), entrypoints.size(), entrypoint,
-					sources == null ? 0 : sources.size(), sinks == null ? 0 : sinks.size());
-		else
-			logger.info("Running data flow analysis on {} with {} sources and {} sinks...", apkFileLocation,
-					sources == null ? 0 : sources.size(), sinks == null ? 0 : sinks.size());
 
 		// Create a new entry point and compute the flows in it. If we
 		// analyze all components together, we do not need a new callgraph,
@@ -1359,26 +1255,23 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		// Create and run the data flow tracker
 		infoflow = createInfoflow();
 		infoflow.addResultsAvailableHandler(resultAggregator);
+		infoflow.setLCResourceOPHelper(ophelper);
 		infoflow.runAnalysis(sourceSinkManager, null); //这里才是入口
 
-		// Update the statistics
-		if (config.getLogSourcesAndSinks() && infoflow.getCollectedSources() != null)
-			this.collectedSources.addAll(infoflow.getCollectedSources());
-		if (config.getLogSourcesAndSinks() && infoflow.getCollectedSinks() != null)
-			this.collectedSinks.addAll(infoflow.getCollectedSinks());
 
 		// Print out the found results
 		{
-			int resCount = resultAggregator.getLastResults() == null ? 0 : resultAggregator.getLastResults().resize();
-			if (config.getOneComponentAtATime())
-				logger.info("Found {} leaks for component {}", resCount, entrypoint);
-			else
-				logger.info("Found {} leaks", resCount);
+			//TODO 显示数据
+//			int summaryCount = resultAggregator.getLastResults() == null ? 0 : resultAggregator.getLastResults().size();
+//			if (config.getOneComponentAtATime())
+//				logger.info("Found {} leaks for component {}", resCount, entrypoint);
+//			else
+//				logger.info("Found {} leaks", resCount);
 		}
 
 		// Update the performance object with the real data
 		{
-			InfoflowResults lastResults = resultAggregator.getLastResults();
+			LCMethodSummaryResult lastResults = resultAggregator.getLastResults();
 			if (lastResults != null) {
 				InfoflowPerformanceData perfData = lastResults.getPerformanceData();
 				perfData.setCallgraphConstructionSeconds((int) callbackDuration);
@@ -1390,7 +1283,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 		this.callbackMethods.clear();
 		this.fragmentClasses.clear();
 		// Notify our result handlers
-		for (ResultsAvailableHandler handler : resultsAvailableHandlers)
+		for (LCMethodResultsAvailableHandler handler : resultsAvailableHandlers)
 			handler.onResultsAvailable(resultAggregator.getLastICFG(), resultAggregator.getLastResults());
 	}
 
@@ -1400,10 +1293,10 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 	 * @param results The data flow results to write out
 	 * @param cfg     The control flow graph to use for writing out the results
 	 */
-	private void serializeResults(InfoflowResults results, IInfoflowCFG cfg) {
+	private void serializeResults(LCMethodSummaryResult results, IInfoflowCFG cfg) {
 		String resultsFile = config.getAnalysisFileConfig().getOutputFile();
 		if (resultsFile != null && !resultsFile.isEmpty()) {
-			InfoflowResultsSerializer serializer = new InfoflowResultsSerializer(cfg, config);
+			PatternResultsSerializer serializer = new PatternResultsSerializer(cfg, config);
 			try {
 				serializer.serialize(results, resultsFile);
 			} catch (FileNotFoundException ex) {
@@ -1431,7 +1324,7 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 //		}
 
 		// Get the component lifecycle methods
-		Collection<SootMethod> lifecycleMethods = Collections.EMPTY_SET;
+		Set<SootMethod> lifecycleMethods = new HashSet<>();
 		lifecycleMethods.addAll(PatternDataHelper.v().getEntryMethods());
 
 		// Initialize and configure the data flow tracker
@@ -1440,36 +1333,22 @@ public class SetupApplication implements ITaintWrapperDataFlowAnalysis {
 			info.setIPCManager(ipcManager);
 		info.setConfig(config);
 		info.setSootConfig(sootConfig);
-		info.setTaintWrapper(taintWrapper);
-		info.setTaintPropagationHandler(taintPropagationHandler);
-		info.setBackwardsPropagationHandler(backwardsPropagationHandler);
+//		info.setTaintWrapper(taintWrapper);
+//		info.setTaintPropagationHandler(taintPropagationHandler);
+//		info.setBackwardsPropagationHandler(backwardsPropagationHandler);
 
-		// We use a specialized memory manager that knows about Android
-		info.setMemoryManagerFactory(new IMemoryManagerFactory() {
+		// We use a specialized memory manager that knows about Android TODO 这部分可能可以再优化下，现在先不用
+//		info.setMemoryManagerFactory(new IMemoryManagerFactory() {
+//
+//			@Override
+//			public IMemoryManager<Abstraction, Unit> getMemoryManager(boolean tracingEnabled,
+//					PathDataErasureMode erasePathData) {
+//				return new AndroidMemoryManager(tracingEnabled, erasePathData, entrypoints);
+//			}
+//
+//		});
+//		info.setMemoryManagerFactory(null);
 
-			@Override
-			public IMemoryManager<Abstraction, Unit> getMemoryManager(boolean tracingEnabled,
-					PathDataErasureMode erasePathData) {
-				return new AndroidMemoryManager(tracingEnabled, erasePathData, entrypoints);
-			}
-
-		});
-		info.setMemoryManagerFactory(null);
-
-		// Inject additional post-processors
-		info.setPostProcessors(Collections.singleton(new PostAnalysisHandler() {
-
-			@Override
-			public InfoflowResults onResultsAvailable(InfoflowResults results, IInfoflowCFG cfg) {
-				// Purify the ICC results if requested
-				final IccConfiguration iccConfig = config.getIccConfig();
-				if (iccConfig.isIccResultsPurifyEnabled())
-					results = IccResults.clean(cfg, results);
-
-				return results;
-			}
-
-		}));
 
 		return info;
 	}

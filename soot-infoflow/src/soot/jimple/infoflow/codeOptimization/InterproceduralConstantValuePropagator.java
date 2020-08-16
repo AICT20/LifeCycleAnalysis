@@ -54,11 +54,10 @@ import soot.jimple.ReturnStmt;
 import soot.jimple.Stmt;
 import soot.jimple.ThisRef;
 import soot.jimple.ThrowStmt;
-import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.entryPointCreators.BaseEntryPointCreator;
 import soot.jimple.infoflow.entryPointCreators.IEntryPointCreator;
-import soot.jimple.infoflow.sourcesSinks.manager.ISourceSinkManager;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
+import soot.jimple.infoflow.pattern.sourceandsink.IPatternSourceSinkManager;
 import soot.jimple.infoflow.util.SystemClassHandler;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.scalar.ConditionalBranchFolder;
@@ -77,10 +76,9 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	private final InfoflowManager manager;
+	private final PatternInfoflowManager manager;
 	private final Set<SootMethod> excludedMethods;
-	private final ISourceSinkManager sourceSinkManager;
-	private final ITaintPropagationWrapper taintWrapper;
+	private final IPatternSourceSinkManager sourceSinkManager;
 	private boolean removeSideEffectFreeMethods = true;
 	private boolean excludeSystemClasses = true;
 
@@ -97,14 +95,13 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 	/**
 	 * Creates a new instance of the {@link InterproceduralConstantValuePropagator}
 	 * class
-	 * 
+	 *
 	 * @param manager The data flow manager for interacting with the solver
 	 */
-	public InterproceduralConstantValuePropagator(InfoflowManager manager) {
+	public InterproceduralConstantValuePropagator(PatternInfoflowManager manager) {
 		this.manager = manager;
 		this.excludedMethods = null;
 		this.sourceSinkManager = null;
-		this.taintWrapper = null;
 	}
 
 	/**
@@ -123,12 +120,11 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 	 *                          values that will later be replaced by artificial
 	 *                          taints
 	 */
-	public InterproceduralConstantValuePropagator(InfoflowManager manager, Collection<SootMethod> excludedMethods,
-			ISourceSinkManager sourceSinkManager, ITaintPropagationWrapper taintWrapper) {
+	public InterproceduralConstantValuePropagator(PatternInfoflowManager manager, Collection<SootMethod> excludedMethods,
+												  IPatternSourceSinkManager sourceSinkManager) {
 		this.manager = manager;
 		this.excludedMethods = new HashSet<SootMethod>(excludedMethods);
 		this.sourceSinkManager = sourceSinkManager;
-		this.taintWrapper = taintWrapper;
 	}
 
 	/**
@@ -316,7 +312,7 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 		SootMethod method = callSite.getInvokeExpr().getMethod();
 
 		// If this method is a source on its own, we must keep it
-		if (sourceSinkManager != null && sourceSinkManager.getSourceInfo(callSite, manager) != null) {
+		if (sourceSinkManager != null && sourceSinkManager.getSourceInfo(callSite, manager, null) != null) {
 			methodFieldReads.put(method, true);
 			return true;
 		}
@@ -324,12 +320,6 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 		// If this method is a sink, we must keep it as well
 		if (sourceSinkManager != null && sourceSinkManager.getSinkInfo(callSite, manager, null) != null) {
 			methodSinks.put(method, true);
-			return true;
-		}
-
-		// If this method is wrapped, we need to keep it
-		if (taintWrapper != null && taintWrapper.supportsCallee(method)) {
-			methodSideEffects.put(method, true);
 			return true;
 		}
 
@@ -407,16 +397,9 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 				if (callSite instanceof AssignStmt) {
 					AssignStmt assign = (AssignStmt) callSite;
 
-					// If we have a taint wrapper, we need to keep the stub
-					// untouched since we
-					// don't know what artificial taint the wrapper will come up
-					// with
-					if (taintWrapper != null && taintWrapper.supportsCallee(assign))
-						continue;
-
 					// If this is a call to a source method, we do not propagate
 					// constants out of the callee for not destroying data flows
-					if (sourceSinkManager != null && sourceSinkManager.getSourceInfo(assign, manager) != null)
+					if (sourceSinkManager != null && sourceSinkManager.getSourceInfo(assign, manager, null) != null)
 						continue;
 
 					// Make sure that we don't access anything we have already
@@ -596,7 +579,6 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 	 * 
 	 * @param method  The method to check
 	 * @param runList A set to receive all methods that have already been processed
-	 * @param cache   The cache in which to store the results
 	 * @return True if the given method or one of its transitive callees has
 	 *         side-effects or calls a sink method, otherwise false.
 	 */
@@ -637,13 +619,6 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 
 			Stmt s = (Stmt) u;
 
-			// If this method calls another method for which we have a taint
-			// wrapper, we need to conservatively assume that the taint wrapper
-			// can do anything
-			if (taintWrapper != null && taintWrapper.supportsCallee(s)) {
-				methodSideEffects.put(method, true);
-				return true;
-			}
 
 			if (s.containsInvokeExpr()) {
 				// If this method calls a sink, we need to keep it
@@ -684,7 +659,6 @@ public class InterproceduralConstantValuePropagator extends SceneTransformer {
 	 * 
 	 * @param method  The method to check
 	 * @param runList A set to receive all methods that have already been processed
-	 * @param cache   The cache in which to store the results
 	 * @return True if the given method or one of its transitive callees has
 	 *         side-effects or calls a sink method, otherwise false.
 	 */

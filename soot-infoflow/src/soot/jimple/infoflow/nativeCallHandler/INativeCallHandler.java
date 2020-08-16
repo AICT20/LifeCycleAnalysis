@@ -14,8 +14,8 @@ import java.util.Set;
 
 import soot.Value;
 import soot.jimple.Stmt;
-import soot.jimple.infoflow.InfoflowManager;
-import soot.jimple.infoflow.data.Abstraction;
+import soot.jimple.infoflow.pattern.solver.NormalState;
+import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
 
 /**
  * The NativeCallHandler defines the taint propagation behavior for native code,
@@ -32,7 +32,7 @@ public interface INativeCallHandler {
 	 * @param manager The manager object providing access to the data flow solver processing
 	 * the IFDS edges and the interprocedural control flow graph
 	 */
-    void initialize(InfoflowManager manager);
+    void initialize(PatternInfoflowManager manager);
 	
 	/**
 	 * Returns the set of tainted values for a given call to native code, a
@@ -42,7 +42,7 @@ public interface INativeCallHandler {
 	 * @param params list of arguments
 	 * @return the resulting set of taints
 	 */
-    Set<Abstraction> getTaintedValues(Stmt call, Abstraction source, Value[] params);
+    NormalState getTaintedValues(Stmt call, NormalState source, Value[] params);
 
 	/**
 	 * Checks whether this handler is able to handle the given call, i.e., has

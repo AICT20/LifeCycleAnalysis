@@ -119,17 +119,6 @@ public abstract class AbstractCallbackAnalyzer {
 			String callbackFile) throws IOException {
 		this(config, entryPointClasses, loadAndroidCallbacks(callbackFile));
 	}
-
-	public AbstractCallbackAnalyzer(InfoflowAndroidConfiguration config, Set<SootClass> entryPointClasses,
-			InputStream inputStream) throws IOException {
-		this(config, entryPointClasses, loadAndroidCallbacks(new InputStreamReader(inputStream)));
-	}
-
-	public AbstractCallbackAnalyzer(InfoflowAndroidConfiguration config, Set<SootClass> entryPointClasses,
-			Reader reader) throws IOException {
-		this(config, entryPointClasses, loadAndroidCallbacks(reader));
-	}
-
 	public AbstractCallbackAnalyzer(InfoflowAndroidConfiguration config, Set<SootClass> entryPointClasses,
 			Set<String> androidCallbacks) throws IOException {
 		this.config = config;

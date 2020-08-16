@@ -6,10 +6,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import soot.SootMethod;
 import soot.Unit;
+import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
+import soot.jimple.infoflow.DataLogger;
 import soot.jimple.infoflow.collect.MyConcurrentHashMap;
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver;
 import soot.jimple.infoflow.memory.ISolverTerminationReason;
+import soot.jimple.infoflow.pattern.alias.PatternAliasing;
+import soot.jimple.infoflow.pattern.mappingmethods.SootMissingMethodHelper;
+import soot.jimple.infoflow.pattern.problems.BWSolverCallFlowFunction;
+import soot.jimple.infoflow.pattern.problems.SolverCallFlowFunction;
+import soot.jimple.infoflow.pattern.problems.SolverCallToReturnFlowFunction;
 import soot.jimple.infoflow.solver.PredecessorShorteningMode;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.infoflow.solver.executors.InterruptableExecutor;
@@ -76,6 +83,7 @@ public class NormalSolver implements IMemoryBoundedSolver{
 
     private int maxCalleesPerCallSite = 75;
     private int maxAbstractionPathLength = 100;
+    protected PatternInfoflowProblem problem = null;
 
     /**
      * Creates a solver for the given problem, which caches flow functions and edge
@@ -104,6 +112,7 @@ public class NormalSolver implements IMemoryBoundedSolver{
                       @SuppressWarnings("rawtypes") CacheBuilder flowFunctionCacheBuilder) {
         if (logger.isDebugEnabled())
             flowFunctionCacheBuilder = flowFunctionCacheBuilder.recordStats();
+        this.problem = tabulationProblem;
         this.zeroValue = tabulationProblem.zeroValue();
         this.icfg = tabulationProblem.interproceduralCFG();
         FlowFunctions<Unit, NormalState, SootMethod> flowFunctions = tabulationProblem.flowFunctions();
@@ -205,6 +214,8 @@ public class NormalSolver implements IMemoryBoundedSolver{
         }
     }
 
+    public PatternInfoflowProblem getProblem() {return this.problem;}
+
     @Override
     public void forceTerminate(ISolverTerminationReason reason) {
         this.killFlag = reason;
@@ -250,44 +261,52 @@ public class NormalSolver implements IMemoryBoundedSolver{
         }
 
         public void run() {
-
             SootMethod m = icfg.getMethodOf(edge.getTarget());
             NormalState ab = (NormalState)edge.factAtTarget();
-
-//			if (null == ab.getCurrentStmt()) {
-//				System.out.println();
-//			}
             Unit n = edge.getTarget();
-//			if (n.toString().contains("specialinvoke $r0.<android.database.sqlite.SQLiteOpenHelper: void <init>(android.content.Context,java.lang.String,android.database.sqlite.SQLiteDatabase$CursorFactory,int)>($r1, \"gservices.db\", null, 3)")) {
-//				System.out.println();
-//			}
+            if (solverId && m.getSignature().contains("stopRequestingSensorEventData")) {
+                System.out.println();
+            }
+//            if (ab.getDef() != null && ab.getDef().getField().getName().equals("mGoogleApiClient")) {
+//                if (n.toString().contains("$r3 = virtualinvoke $r2.<com.google.android.gms.common.api.GoogleApiClient$Builder: com.google.android.gms.common.api.GoogleApiClient build()>()")) {
+//                    System.out.println();
+//                }
+//                if (n.toString().contains("$r3 = $r0.<com.klinker.android.twitter.activities.compose.Compose: com.google.android.gms.common.api.GoogleApiClient mGoogleApiClient>")) {
+//                    System.out.println();
+//                }
+//                if (n.toString().contains("virtualinvoke $r3.<com.google.android.gms.common.api.GoogleApiClient: void connect()>()")) {
+//                    System.out.println();
+//                }
 //
-            Stmt stmt = (Stmt)n;
-//			if (stmt.toString().equals("throw $r1") && m.getName().equals("run")) {
-//				System.out.println();
-//			}
-//			if (stmt.toString().equals("virtualinvoke $r9.<java.lang.Thread: void start()>()")) {
-//				System.out.println();
-//			}
-
-//			if (stmt.toString().contains("return") && null != ab.getCorrespondingCallSite() && ab.getCorrespondingCallSite().toString().contains("virtualinvoke $r9.<java.lang.Thread: void start()")) {
-//				System.out.println();
-//			}
-//			if (stmt.toString().contains("GoogleApiClient")) {
-//				System.out.println();
-//			}
-
-
-
+//                System.out.println();
+//            }
+//            if (m.getSignature().contains("setUpReplyText") && m.getSignature().contains("NotificationCompose") && !m.getSignature().contains("NotificationComposeSecondAcc")) {
+//                if (n.toString().contains("$r12 = virtualinvoke $r0.<com.klinker.android.twitter.activities.compose.NotificationCompose: android.content.Intent getIntent()")) {
+//                    System.out.println();
+//                }
+//                DataLogger.getInstance().addStmt((Stmt)n);
+//                System.out.println();
+//            }
+//            if (m.getSignature().contains("NotificationCompose") && !m.getSignature().contains("NotificationComposeSecondAcc") && m.getSignature().contains("getIntent")) {
+//                System.out.println();
+//            }
+//            if (n.toString().contains("finish()") && m.getSignature().contains("setUpReplyText")) {
+//                System.out.println();
+//            }
+//            if (n.toString().contains("return") && m.getSignature().contains("onCreate")) {
+//                System.out.println();
+//            }
+//            DataLogger.getInstance().addInvocation(m);
             if (icfg.isCallStmt(edge.getTarget())) {
+                SootMethod callee = ((Stmt)n).getInvokeExpr().getMethod();
+                if (callee.getSignature().contains("setEndTimestamp")) {
+                    System.out.println();
+                }
                 processCall(edge);
             } else {
                 // note that some statements, such as "throw" may be
                 // both an exit statement and a "normal" statement
                 if (icfg.isExitStmt(edge.getTarget())) {
-//					if (icfg.getMethodOf(n).getSignature().contains("onCreate") && n.toString().contains("return 1")) {
-//						System.out.println();
-//					}
                     processExit(edge);
                 }
                 if (!icfg.getSuccsOf(edge.getTarget()).isEmpty())
@@ -323,14 +342,8 @@ public class NormalSolver implements IMemoryBoundedSolver{
 
     }
 
-    protected void propagate(Unit target, NormalState targetVal,
+    public void propagate(Unit target, NormalState targetVal,
             /* deliberately exposed to clients */ Unit previousN) {
-        // Let the memory manager run
-        if (memoryManager != null) {
-            targetVal = memoryManager.handleMemoryObject(targetVal);
-            if (targetVal == null)
-                return;
-        }
 
         // Check the path length
         if (maxAbstractionPathLength >= 0 && targetVal.getPathLength() > maxAbstractionPathLength)
@@ -341,15 +354,15 @@ public class NormalSolver implements IMemoryBoundedSolver{
         if (existingVal != null) {
             //这里edge已经执行过了，所以什么都不做
         } else {
-            //这里edge还未执行过
+            //这里edge还未执行过 TODO 这里先禁了看看
             // If this is an inactive abstraction and we have already processed
             // its active counterpart, we can skip this one
-            NormalState activeVal = targetVal.getActiveCopy();
-            if (activeVal != targetVal) {
-                NormalEdge<Unit, NormalState> activeEdge = new NormalEdge<>(target, activeVal);
-                if (jumpFunctions.containsKey(activeEdge))
-                    return;
-            }
+//            NormalState activeVal = targetVal.getActiveCopy();
+//            if (activeVal != targetVal) {
+//                NormalEdge<Unit, NormalState> activeEdge = new NormalEdge<>(target, activeVal);
+//                if (jumpFunctions.containsKey(activeEdge))
+//                    return;
+//            }
             scheduleEdgeProcessing(edge, previousN);
         }
     }
@@ -405,13 +418,14 @@ public class NormalSolver implements IMemoryBoundedSolver{
 
     private void processCall(NormalEdge<Unit, NormalState> edge) {
         final Unit n = edge.getTarget(); // a call node; line 14...
-
         final NormalState d2 = edge.factAtTarget();
         assert d2 != null;
         Collection<Unit> returnSiteNs = icfg.getReturnSitesOfCallAt(n);
-
         // for each possible callee
         Collection<SootMethod> callees = icfg.getCalleesOfCallAt(n);
+        if (callees.isEmpty() && ((Stmt)n).containsInvokeExpr()) {
+            SootMissingMethodHelper.v().addMissingMethod(((Stmt) n).getInvokeExpr().getMethod());
+        }
         if (maxCalleesPerCallSite < 0 || callees.size() <= maxCalleesPerCallSite) {
             callees.stream().filter(m -> m.isConcrete()).forEach(new Consumer<SootMethod>() {
 
@@ -422,24 +436,22 @@ public class NormalSolver implements IMemoryBoundedSolver{
                         return;
                     // compute the call-flow function
                     FlowFunction<NormalState> function = flowFunctions.getCallFlowFunction(n, sCalledProcN);
-                    Set<NormalState> res = computeCallFlowFunction(function, d2);
-
-                    if (res != null && !res.isEmpty()) {
-                        Collection<Unit> startPointsOf = icfg.getStartPointsOf(sCalledProcN);
-                        // for each result node of the call-flow function
-                        for (NormalState d3 : res) {
+                    Collection<Unit> startPointsOf = icfg.getStartPointsOf(sCalledProcN);
+                    for (Unit sP : startPointsOf) {
+                        Set<NormalState> res = computeCallFlowFunction(function, d2, sP, true);
+                        if (res != null && !res.isEmpty()) {
+                            for (NormalState d3 : res) {
 //                            if (memoryManager != null)
 //                                d3 = memoryManager.handleGeneratedMemoryObject(d2, d3);
-                            if (d3 == null)
-                                continue;
-
-                            // for each callee's start point(s)
-                            for (Unit sP : startPointsOf) {
-                                // create initial self-loop
+                                if (d3 == null)
+                                    continue;
                                 propagate(sP, d3, n); // line 15
                             }
                         }
                     }
+
+
+
                 }
 
             });
@@ -447,7 +459,7 @@ public class NormalSolver implements IMemoryBoundedSolver{
 
         for (Unit returnSiteN : returnSiteNs) {
             FlowFunction<NormalState> callToReturnFlowFunction = flowFunctions.getCallToReturnFlowFunction(n, returnSiteN);//这里的flowFuntions是InfoflowProblem,返回的是SolverCallToReturnFlowFunction
-            Set<NormalState> res = computeCallToReturnFlowFunction(callToReturnFlowFunction, d2);
+            Set<NormalState> res = computeCallToReturnFlowFunction(callToReturnFlowFunction, d2, true);
             if (res != null && !res.isEmpty()) {
                 for (NormalState d3 : res) {
 //                    if (memoryManager != null)
@@ -458,11 +470,21 @@ public class NormalSolver implements IMemoryBoundedSolver{
             }
         }
     }
-    protected Set<NormalState> computeCallFlowFunction(FlowFunction<NormalState> callFlowFunction, NormalState d2) {
-        return callFlowFunction.computeTargets(d2);
+    protected Set<NormalState> computeCallFlowFunction(FlowFunction<NormalState> callFlowFunction, NormalState d2, Unit nextStmt, boolean isRelevant) {
+        if (callFlowFunction instanceof BWSolverCallFlowFunction) {
+            return ((BWSolverCallFlowFunction) callFlowFunction).computeCallTargets(d2, nextStmt, isRelevant);
+        } else if (callFlowFunction instanceof SolverCallFlowFunction) {
+            return ((SolverCallFlowFunction) callFlowFunction).computeCallTargets(d2, isRelevant);
+        } else {
+            return callFlowFunction.computeTargets(d2);
+        }
     }
-    protected Set<NormalState> computeCallToReturnFlowFunction(FlowFunction<NormalState> callToReturnFlowFunction, NormalState d2) {
-        return callToReturnFlowFunction.computeTargets(d2);
+    protected Set<NormalState> computeCallToReturnFlowFunction(FlowFunction<NormalState> callToReturnFlowFunction, NormalState d2, boolean isRelevant) {
+        if (callToReturnFlowFunction instanceof SolverCallToReturnFlowFunction) {
+            return ((SolverCallToReturnFlowFunction)callToReturnFlowFunction).computeCallTargets(d2, isRelevant);
+        } else {
+            return callToReturnFlowFunction.computeTargets(d2);
+        }
     }
 
     /**
@@ -486,8 +508,6 @@ public class NormalSolver implements IMemoryBoundedSolver{
                 Set<NormalState> targets = computeReturnFlowFunction(retFunction, d2, c);
                 if (targets != null && !targets.isEmpty()) {
                     for (NormalState d5 : targets) {
-                        if (memoryManager != null)
-                            d5 = memoryManager.handleGeneratedMemoryObject(d2, d5);
                         if (d5 != null)
                             propagate(retSiteC, d5, n);
                     }
@@ -503,5 +523,9 @@ public class NormalSolver implements IMemoryBoundedSolver{
     }
     protected Set<NormalState> computeReturnFlowFunction(FlowFunction<NormalState> retFunction, NormalState d2, Unit callSite) {
         return retFunction.computeTargets(d2);
+    }
+
+    public long getPropagationCount() {
+        return propagationCount;
     }
 }

@@ -110,6 +110,8 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 			this.sourceSinkFile = sourceSinkFile;
 		}
 
+
+
 		/**
 		 * Gets the additional libraries that are required on the analysis classpath.
 		 * FlowDroid will automatically include the target APK file and the Android
@@ -563,6 +565,7 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 		private Map<CategoryDefinition, CategoryMode> sourceCategories = new HashMap<>();
 		private Map<CategoryDefinition, CategoryMode> sinkCategories = new HashMap<>();
 
+
 		/**
 		 * Copies the settings of the given configuration into this configuration object
 		 * 
@@ -623,6 +626,8 @@ public class InfoflowAndroidConfiguration extends InfoflowConfiguration {
 		public boolean getEnableLifecycleSources() {
 			return this.enableLifecycleSources;
 		}
+
+
 
 		/**
 		 * Sets the mode to be used when deciding whether a UI control is a source or

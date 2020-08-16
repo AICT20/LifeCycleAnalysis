@@ -2,7 +2,9 @@ package soot.jimple.infoflow.pattern.patterndata;
 
 import heros.solver.Pair;
 import soot.SootClass;
+import soot.SootField;
 import soot.SootMethod;
+import soot.util.MultiMap;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +25,9 @@ public class PatternEntryData {
         if (null != anotherEntrypoints && !anotherEntrypoints.isEmpty()) {
             entrypoints.addAll(anotherEntrypoints);
         }
+    }
+    public Set<Pair<String, SootMethod>> getEntrypoints() {
+        return this.entrypoints;
     }
     public Set<SootMethod> getAllMethods() {
         Set<SootMethod> allMethods = new HashSet<>();
@@ -50,5 +55,14 @@ public class PatternEntryData {
         }
         this.entrypoints.addAll(another.entrypoints);
         return true;
+    }
+
+    //Field也进行一下筛选
+    protected Set<SootField> involvedFields = null;
+    public void updateInvolvedFields(Set<SootField> involvedFields) {
+        this.involvedFields = involvedFields;
+    }
+    public Set<SootField> getInvolvedFields() {
+        return involvedFields;
     }
 }

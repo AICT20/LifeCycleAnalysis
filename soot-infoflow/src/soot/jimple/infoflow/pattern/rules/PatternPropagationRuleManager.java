@@ -2,7 +2,7 @@ package soot.jimple.infoflow.pattern.rules;
 
 import soot.SootMethod;
 import soot.jimple.Stmt;
-import soot.jimple.infoflow.InfoflowManager;
+import soot.jimple.infoflow.pattern.mappingmethods.MappingMethodHelper;
 import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
 import soot.jimple.infoflow.pattern.solver.NormalState;
 import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
@@ -25,8 +25,13 @@ public class PatternPropagationRuleManager {
         ruleList.add(new LCSourcePropagationRule(manager, results));
         ruleList.add(new LCOperationPropagationRule(manager, results));
         ruleList.add(new LCFinishPropagationRule(manager, results));
-        ruleList.add(new LCAPUpdatePropagationRule(manager, results));
-        ruleList.add(new LCExceptionPropagationRule(manager, results));
+//        ruleList.add(new LCExceptionPropagationRule(manager, results));  这个主要处理throw的Expcetion object，我们似乎涉及不到
+        ruleList.add(new LCStrongUpdatePropagationRule(manager, results));
+
+        ruleList.add(new LCAPUpdatePropagationRule(manager, results));//这个ap update 必须是最后的
+        if (!MappingMethodHelper.v().isEmpty()) {
+            ruleList.add(new LCSPMethodPropagationRule(manager, results));
+        }
         this.rules = ruleList;
     }
 
@@ -52,22 +57,22 @@ public class PatternPropagationRuleManager {
         return newState;
     }
 
-    public NormalState applyCallToReturnFlowFunction(NormalState source, Stmt stmt,
+    public NormalState applyCallToReturnFlowFunction(NormalState source, Stmt stmt, SootMethod callee,
                                              ByReferenceBoolean hasGeneratedNewState, ByReferenceBoolean killAll) {
         NormalState newState = source;
         for (AbstractLCStatePropagationRule rule : rules) {
-            newState = rule.propagateCallToReturnFlow(newState, stmt, hasGeneratedNewState, killAll);
+            newState = rule.propagateCallToReturnFlow(newState, stmt, callee, hasGeneratedNewState, killAll);
             if (killAll != null && killAll.value || newState == null)
                 return null;
         }
         return newState;
     }
 
-    public NormalState applyReturnFlowFunction(NormalState source, Stmt exitstmt, Stmt callmethod,
+    public NormalState applyReturnFlowFunction(NormalState source, Stmt exitstmt, Stmt retSite, Stmt callmethod, SootMethod calleeMethod,
                                                      ByReferenceBoolean hasGeneratedNewState, ByReferenceBoolean killAll) {
         NormalState newState = source;
         for (AbstractLCStatePropagationRule rule : rules) {
-            newState = rule.propagateReturnFlow(newState, exitstmt, callmethod, hasGeneratedNewState, killAll);
+            newState = rule.propagateReturnFlow(newState, exitstmt, retSite, callmethod, calleeMethod, hasGeneratedNewState, killAll);
             if (killAll != null && killAll.value || newState == null)
                 return null;
         }

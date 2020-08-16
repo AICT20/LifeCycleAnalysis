@@ -14,7 +14,6 @@ import soot.Scene;
 import soot.ShortType;
 import soot.SootClass;
 import soot.Type;
-import soot.jimple.infoflow.InfoflowManager;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
 

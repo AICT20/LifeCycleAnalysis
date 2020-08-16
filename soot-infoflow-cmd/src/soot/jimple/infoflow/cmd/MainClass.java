@@ -33,13 +33,7 @@ import soot.jimple.infoflow.android.InfoflowAndroidConfiguration.CallbackSourceM
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration.LayoutMatchingMode;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.android.config.XMLConfigurationParser;
-import soot.jimple.infoflow.methodSummary.data.provider.LazySummaryProvider;
-import soot.jimple.infoflow.methodSummary.taintWrappers.ReportMissingSummaryWrapper;
-import soot.jimple.infoflow.methodSummary.taintWrappers.SummaryTaintWrapper;
-import soot.jimple.infoflow.methodSummary.taintWrappers.TaintWrapperFactory;
-import soot.jimple.infoflow.taintWrappers.EasyTaintWrapper;
-import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
-import soot.jimple.infoflow.taintWrappers.TaintWrapperSet;
+
 import soot.jimple.infoflow.util.MyOutputer;
 import soot.util.HashMultiMap;
 import soot.util.MultiMap;
@@ -56,9 +50,12 @@ public class MainClass {
 
 	private final Options options = new Options();
 	private SetupApplication analyzer = null;
-	private ReportMissingSummaryWrapper reportMissingSummaryWrapper;
 
 	private Set<String> filesToSkip = new HashSet<>();
+
+	//最新版本的,新加参数
+	private static final String OPTION_MAPPINGMETHOD_FILE = "mm";
+	private static final String OPTION_TAINTSUBFIELDSANDCHILDREN = "tsf";
 
 	// Files
 	private static final String OPTION_CONFIG_FILE = "c";
@@ -141,6 +138,8 @@ public class MainClass {
 		options.addOption(OPTION_PLATFORMS_DIR, "platformsdir", true,
 				"Path to the platforms directory from the Android SDK");
 		options.addOption(OPTION_SOURCES_SINKS_FILE, "sourcessinksfile", true, "Definition file for sources and sinks");
+		options.addOption(OPTION_MAPPINGMETHOD_FILE, "mappingmethodfile", true, "Definition file for methods that have specific taint rules");
+		options.addOption(OPTION_TAINTSUBFIELDSANDCHILDREN, "taintsubfieldsandchildren", false, "Decide whether to taint sub fields and the children of array/list");
 		options.addOption(OPTION_OUTPUT_FILE, "outputfile", true, "Output XML file for the discovered data flows");
 		options.addOption(OPTION_ADDITIONAL_CLASSPATH, "additionalclasspath", true,
 				"Additional JAR file that shal be put on the classpath");
@@ -238,9 +237,7 @@ public class MainClass {
 	public static void main(String[] args) throws Exception {
 		String newAnalysisProject_home = "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject";
 		String sdkpath = "C:\\Users\\luyifei\\AppData\\Local\\Android\\Sdk";
-		String appshomepath = "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\apks_pattern_1_2020-06-28";
-		File appshomefolder = new File(appshomepath);
-		File outputfile = new File("C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\outputfolder\\output_log.txt");
+		File outputfile = new File(newAnalysisProject_home + File.separator + "apks_pattern_2_2020-07-18\\output_log.txt");
 		MyOutputer.getInstance().setOutputFile(outputfile);
 //			int appindex = cindex;
 //			MyOutputer.getInstance().updateIndex(cindex);
@@ -252,15 +249,15 @@ public class MainClass {
 //				}
 //			}
 //			String[] test = {"-a", appshomepath,
-			String[] test = {"-a", "C:\\Users\\luyifei\\Documents\\2019NewAnalysisProject\\talon-twitter-holo.apk",
-					"-p", sdkpath + File.separator + "platforms\\android-29\\android.jar",
-					"-s", newAnalysisProject_home + File.separator + "SourcesAndSinks_lyf_resourceleak.txt",
-					"-o",  newAnalysisProject_home + File.separator + "outputfolder",
-					"-pr", "PRECISE",   //构建paths时提供完整的路径
+			String[] test = {"-a", newAnalysisProject_home + File.separator + "bugapps" + File.separator + "Sensor-Data-Logger.apk",
+					"-p", sdkpath + File.separator + "platforms",
+					"-s", newAnalysisProject_home + File.separator + "ResourceOPMap_lyf.xml",
+					"-mm", newAnalysisProject_home + File.separator + "MappingMethods_lyf.xml",
+					"-o",  newAnalysisProject_home + File.separator + "outputfolder_new_2020-08-02",
+					"-tsf"
 //					"-ps", //决定是不是把所有的path都显示出来
 //				"-im", "iccta_gmscore_1.txt"  //增加ICC
 //				"-os", //内存不够， 进行onesourceatatime
-					"-lc_iac", //这是我们自己加的，用来进行component内部的resource leak分析
 //				"-ds", "FLOWINSENSITIVE",
 //				"-pa", "CONTEXTINSENSITIVE"
 			};
@@ -336,7 +333,6 @@ public class MainClass {
 
 			// Initialize the taint wrapper. We only do this once for all apps to cache
 			// summaries that we have already loaded.
-			ITaintPropagationWrapper taintWrapper = initializeTaintWrapper(cmd);
 
 			int curAppIdx = 1;
 			for (File apkFile : apksToAnalyze) {
@@ -354,9 +350,13 @@ public class MainClass {
 					if (apksToAnalyze.size() > 1 || (outputFile.exists() && outputFile.isDirectory())) {
 						String outputFileName = apkFile.getName().replace(".apk", ".xml");
 						//lifecycle-add
-//						String currentIndexstr = outputFileName.substring(0, outputFileName.indexOf('_'));
-//						int currentIndex = Integer.parseInt(currentIndexstr);
-//						config.setIndex(currentIndex);
+						try {
+							String currentIndexstr = outputFileName.substring(0, outputFileName.indexOf('_'));
+							int currentIndex = Integer.parseInt(currentIndexstr);
+							config.setIndex(currentIndex);
+						} catch (Exception e) {
+							config.setIndex(0);
+						}
 
 						File curOutputFile = new File(outputFile, outputFileName);
 						config.getAnalysisFileConfig().setOutputFile(curOutputFile.getCanonicalPath());
@@ -370,15 +370,10 @@ public class MainClass {
 
 				// Create the data flow analyzer
 				analyzer = new SetupApplication(config);
-				analyzer.setTaintWrapper(taintWrapper);
 
 				// Start the data flow analysis
 				analyzer.runInfoflow();
 
-				if (reportMissingSummaryWrapper != null) {
-					String file = cmd.getOptionValue(OPTION_MISSING_SUMMARIES_FILE);
-					reportMissingSummaryWrapper.writeResults(new File(file));
-				}
 			}
 		} catch (AbortAnalysisException e) {
 			// Silently return
@@ -391,142 +386,6 @@ public class MainClass {
 		}
 	}
 
-	/**
-	 * Initializes the taint wrapper based on the command-line parameters
-	 * 
-	 * @param cmd The command-line parameters
-	 * @return The taint wrapper to use for the data flow analysis, or null in case
-	 *         no taint wrapper shall be used
-	 */
-	private ITaintPropagationWrapper initializeTaintWrapper(CommandLine cmd) throws Exception {
-		// If we want to analyze the full framework together with the app, we do not
-		// want any shortcuts
-		if (cmd.hasOption(OPTION_ANALYZE_FRAMEWORKS))
-			return null;
-
-		// Get the definition file(s) for the taint wrapper
-		String[] definitionFiles = cmd.getOptionValues(OPTION_TAINT_WRAPPER_FILE);
-
-		// If the user did not specify a taint wrapper, but definition files, we
-		// use the most permissive option
-		String taintWrapper = cmd.getOptionValue(OPTION_TAINT_WRAPPER);
-		if (taintWrapper == null || taintWrapper.isEmpty()) {
-			if (definitionFiles != null && definitionFiles.length > 0)
-				taintWrapper = "multi";
-			else {
-				// If we don't have a taint wrapper configuration, we use the
-				// default
-				taintWrapper = "default";
-			}
-		}
-
-		ITaintPropagationWrapper result = null;
-		// Create the respective taint wrapper object
-		switch (taintWrapper.toLowerCase()) {
-		case "default":
-			// We use StubDroid, but with the summaries from inside the JAR
-			// files
-			result = createSummaryTaintWrapper(cmd, new LazySummaryProvider("summariesManual"));
-			break;
-		case "defaultfallback":
-			// We use StubDroid, but with the summaries from inside the JAR
-			// files
-			SummaryTaintWrapper summaryWrapper = createSummaryTaintWrapper(cmd,
-					new LazySummaryProvider("summariesManual"));
-			summaryWrapper.setFallbackTaintWrapper(new EasyTaintWrapper());
-			result = summaryWrapper;
-			break;
-		case "none":
-			break;
-		case "easy":
-			// If the user has not specified a definition file for the easy
-			// taint wrapper, we try to locate a default file
-			String defFile = null;
-			if (definitionFiles == null || definitionFiles.length == 0) {
-				File defaultFile = EasyTaintWrapper.locateDefaultDefinitionFile();
-				if (defaultFile == null) {
-					try {
-						return new EasyTaintWrapper(defFile);
-					} catch (Exception e) {
-						e.printStackTrace();
-						System.err.println(
-								"No definition file for the easy taint wrapper specified and could not find the default file");
-						throw new AbortAnalysisException();
-					}
-				} else
-					defFile = defaultFile.getCanonicalPath();
-			} else if (definitionFiles == null || definitionFiles.length != 1) {
-				System.err.println("Must specify exactly one definition file for the easy taint wrapper");
-				throw new AbortAnalysisException();
-			} else
-				defFile = definitionFiles[0];
-			result = new EasyTaintWrapper(defFile);
-			break;
-		case "stubdroid":
-			if (definitionFiles == null || definitionFiles.length == 0) {
-				System.err.println("Must specify at least one definition file for StubDroid");
-				throw new AbortAnalysisException();
-			}
-			result = TaintWrapperFactory.createTaintWrapper(Arrays.asList(definitionFiles));
-			break;
-		case "multi":
-			// We need explicit definition files
-			if (definitionFiles == null || definitionFiles.length == 0) {
-				System.err.println("Must explicitly specify the definition files for the multi mode");
-				throw new AbortAnalysisException();
-			}
-
-			// We need to group the definition files by their type
-			MultiMap<String, String> extensionToFile = new HashMultiMap<>(definitionFiles.length);
-			for (String str : definitionFiles) {
-				File f = new File(str);
-				if (f.isFile()) {
-					String fileName = f.getName();
-					extensionToFile.put(fileName.substring(fileName.lastIndexOf(".")), f.getCanonicalPath());
-				} else if (f.isDirectory()) {
-					extensionToFile.put(".xml", f.getCanonicalPath());
-				}
-			}
-
-			// For each definition file, we create the respective taint wrapper
-			TaintWrapperSet wrapperSet = new TaintWrapperSet();
-			SummaryTaintWrapper stubDroidWrapper = null;
-			if (extensionToFile.containsKey(".xml")) {
-				stubDroidWrapper = TaintWrapperFactory.createTaintWrapper(extensionToFile.get(".xml"));
-				wrapperSet.addWrapper(stubDroidWrapper);
-			}
-			Set<String> easyDefinitions = extensionToFile.get(".txt");
-			if (!easyDefinitions.isEmpty()) {
-				if (easyDefinitions.size() > 1) {
-					System.err.println("Must specify exactly one definition file for the easy taint wrapper");
-					throw new AbortAnalysisException();
-				}
-
-				// If we use StubDroid as well, we use the easy taint wrapper as
-				// a fallback
-				EasyTaintWrapper easyWrapper = new EasyTaintWrapper(easyDefinitions.iterator().next());
-				if (stubDroidWrapper == null)
-					wrapperSet.addWrapper(easyWrapper);
-				else
-					stubDroidWrapper.setFallbackTaintWrapper(easyWrapper);
-			}
-			result = wrapperSet;
-			break;
-		default:
-			System.err.println("Invalid taint propagation wrapper specified, ignoring.");
-			throw new AbortAnalysisException();
-		}
-		return result;
-
-	}
-
-	private SummaryTaintWrapper createSummaryTaintWrapper(CommandLine cmd, LazySummaryProvider lazySummaryProvider) {
-		if (cmd.hasOption(OPTION_MISSING_SUMMARIES_FILE)) {
-			reportMissingSummaryWrapper = new ReportMissingSummaryWrapper(lazySummaryProvider);
-			return reportMissingSummaryWrapper;
-		} else
-			return new SummaryTaintWrapper(lazySummaryProvider);
-	}
 
 	private static CallgraphAlgorithm parseCallgraphAlgorithm(String algo) {
 		if (algo.equalsIgnoreCase("AUTO"))
@@ -698,6 +557,16 @@ public class MainClass {
 			String sourcesSinks = cmd.getOptionValue(OPTION_SOURCES_SINKS_FILE);
 			if (sourcesSinks != null && !sourcesSinks.isEmpty())
 				config.getAnalysisFileConfig().setSourceSinkFile(sourcesSinks);
+		}
+		{
+			String mappingMethods = cmd.getOptionValue(OPTION_MAPPINGMETHOD_FILE);
+			if (mappingMethods != null && !mappingMethods.isEmpty())
+				config.setMappingMethodsFile(mappingMethods);
+		}
+		{
+			if (cmd.hasOption(OPTION_TAINTSUBFIELDSANDCHILDREN)) {
+				config.setTaintSubfieldsAndChildren(true);
+			}
 		}
 		{
 			String outputFile = cmd.getOptionValue(OPTION_OUTPUT_FILE);

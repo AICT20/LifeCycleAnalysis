@@ -2,17 +2,11 @@ package soot.jimple.infoflow.pattern.rules;
 
 import soot.SootMethod;
 import soot.jimple.Stmt;
-import soot.jimple.infoflow.InfoflowManager;
-import soot.jimple.infoflow.aliasing.Aliasing;
-import soot.jimple.infoflow.data.Abstraction;
+import soot.jimple.infoflow.pattern.alias.PatternAliasing;
 import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
 import soot.jimple.infoflow.pattern.solver.NormalState;
 import soot.jimple.infoflow.pattern.solver.PatternInfoflowManager;
-import soot.jimple.infoflow.problems.TaintPropagationResults;
-import soot.jimple.infoflow.problems.rules.ITaintPropagationRule;
 import soot.jimple.infoflow.util.ByReferenceBoolean;
-
-import java.util.Collection;
 
 abstract public class AbstractLCStatePropagationRule {
 
@@ -28,7 +22,7 @@ abstract public class AbstractLCStatePropagationRule {
         return this.manager;
     }
 
-    protected Aliasing getAliasing() {
+    protected PatternAliasing getAliasing() {
         return this.manager.getAliasing();
     }
 
@@ -43,10 +37,10 @@ abstract public class AbstractLCStatePropagationRule {
     abstract NormalState propagateCallFlow(NormalState source, Stmt stmt, SootMethod dest,
                                            ByReferenceBoolean hasGeneratedNewState, ByReferenceBoolean killAll);
 
-    abstract NormalState propagateCallToReturnFlow(NormalState source, Stmt stmt,
+    abstract NormalState propagateCallToReturnFlow(NormalState source, Stmt stmt, SootMethod callee,
                                                    ByReferenceBoolean hasGeneratedNewState, ByReferenceBoolean killAll);
 
-    abstract NormalState propagateReturnFlow(NormalState source, Stmt retSite, Stmt callSite,
+    abstract NormalState propagateReturnFlow(NormalState source, Stmt exitStmt, Stmt retSite, Stmt callSite, SootMethod calleeMethod,
                                              ByReferenceBoolean hasGeneratedNewState, ByReferenceBoolean killAll);
 
 }

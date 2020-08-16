@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import soot.jimple.infoflow.memory.IMemoryBoundedSolver.IMemoryBoundedSolverStatusNotification;
 import soot.jimple.infoflow.memory.reasons.TimeoutReason;
+import soot.jimple.infoflow.pattern.result.LCMethodSummaryResult;
 import soot.jimple.infoflow.results.InfoflowResults;
 
 /**
@@ -42,7 +43,7 @@ public class FlowDroidTimeoutWatcher implements IMemoryBoundedSolverStatusNotifi
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private final long timeout;
-	private final InfoflowResults results;
+	private final LCMethodSummaryResult results;
 	private final Map<IMemoryBoundedSolver, SolverState> solvers = new ConcurrentHashMap<>();
 	private boolean stopped = false;
 
@@ -67,7 +68,7 @@ public class FlowDroidTimeoutWatcher implements IMemoryBoundedSolverStatusNotifi
 	 * @param res
 	 *            The InfoflowResults object
 	 */
-	public FlowDroidTimeoutWatcher(long timeout, InfoflowResults res) {
+	public FlowDroidTimeoutWatcher(long timeout, LCMethodSummaryResult res) {
 		this.timeout = timeout;
 		this.results = res;
 	}

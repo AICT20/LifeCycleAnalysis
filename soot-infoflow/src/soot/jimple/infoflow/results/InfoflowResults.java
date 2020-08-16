@@ -11,11 +11,7 @@
 package soot.jimple.infoflow.results;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -23,9 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import heros.solver.Pair;
-import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
-import soot.jimple.infoflow.data.Abstraction;
 import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 import soot.util.ConcurrentHashMultiMap;
@@ -118,60 +112,6 @@ public class InfoflowResults {
 	 */
 	public boolean isEmpty() {
 		return this.results == null || this.results.isEmpty();
-	}
-
-	/**
-	 * Checks whether this result object contains a sink that exactly matches the
-	 * given value.
-	 * 
-	 * @param sink The sink to check for
-	 * @return True if this result contains the given value as a sink, otherwise
-	 *         false.
-	 */
-//	public boolean containsSink(Stmt sink) {
-//		for (ResultSinkInfo si : this.results.keySet())
-//			if (si.getStmt().equals(sink))
-//				return true;
-//		return false;
-//	}
-
-	/**
-	 * Checks whether this result object contains a sink with the given method
-	 * signature
-	 * 
-	 * @return True if there is a sink with the given method signature in this
-	 *         result object, otherwise false.
-	 */
-//	public boolean containsSinkMethod(String sinkSignature) {
-//		return !findSinkByMethodSignature(sinkSignature).isEmpty();
-//	}
-
-	public void addResult(SourceSinkDefinition sinkDefinition, AccessPath sink, Stmt sinkStmt,
-			SourceSinkDefinition sourceDefinition, AccessPath source, Stmt sourceStmt) {
-		this.addResult(new ResultSinkInfo(sinkDefinition, sink, sinkStmt),
-				new ResultSourceInfo(sourceDefinition, source, sourceStmt));
-	}
-
-	public Pair<ResultSourceInfo, ResultSinkInfo> addResult(SourceSinkDefinition sinkDefinition, AccessPath sink,
-			Stmt sinkStmt, SourceSinkDefinition sourceDefinition, AccessPath source, Stmt sourceStmt, Object userData,
-			List<Abstraction> propagationPath) {
-		// Get the statements and the access paths from the abstractions
-		List<Stmt> stmtPath = null;
-		List<AccessPath> apPath = null;
-		if (propagationPath != null) {
-			stmtPath = new ArrayList<>(propagationPath.size());
-			apPath = new ArrayList<>(propagationPath.size());
-			for (Abstraction pathAbs : propagationPath) {
-				if (pathAbs.getCurrentStmt() != null) {
-					stmtPath.add(pathAbs.getCurrentStmt());
-					apPath.add(pathAbs.getAccessPath());
-				}
-			}
-		}
-
-		// Add the result
-		return addResult(sinkDefinition, sink, sinkStmt, sourceDefinition, source, sourceStmt, userData, stmtPath,
-				apPath);
 	}
 
 	/**

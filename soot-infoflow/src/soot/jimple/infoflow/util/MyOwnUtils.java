@@ -1,14 +1,7 @@
 package soot.jimple.infoflow.util;
 
-import soot.Body;
-import soot.Value;
-import soot.jimple.infoflow.data.Abstraction;
-import soot.jimple.infoflow.data.AccessPath;
 import soot.jimple.infoflow.sourcesSinks.definitions.SourceSinkDefinition;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class MyOwnUtils {
@@ -46,26 +39,6 @@ public class MyOwnUtils {
 //        }
         return true;
     }
-
-    public static SourceSinkDefinition getOriginalSource(Abstraction abs) {
-        SourceSinkDefinition result = abs.getOriginalDef();
-        if (null != result) {
-            return result;
-        }
-
-        while (abs.getSourceContext() == null) {
-            Abstraction temp = abs.getPredecessor();
-            if (null != temp) {
-                abs = temp;
-            } else {
-                return null;
-            }
-        }
-        result = abs.getSourceContext().getDefinition();
-        abs.setOriginalDef(result);
-        return result;
-    }
-
 
 
 }

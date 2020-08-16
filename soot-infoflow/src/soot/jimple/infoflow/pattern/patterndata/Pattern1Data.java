@@ -2,12 +2,15 @@ package soot.jimple.infoflow.pattern.patterndata;
 
 import heros.solver.Pair;
 import soot.*;
+import soot.jimple.FieldRef;
 import soot.jimple.InvokeExpr;
 import soot.jimple.Stmt;
+import soot.jimple.infoflow.IInfoflow;
 import soot.jimple.infoflow.cfg.DefaultBiDiICFGFactory;
 import soot.jimple.infoflow.solver.cfg.IInfoflowCFG;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
+import soot.util.Chain;
 
 import java.util.*;
 
@@ -19,14 +22,23 @@ public class Pattern1Data extends PatternData {
     public Pattern1Data(){
         super();
     }
-
+    protected Set<SootMethod> cannotSkipMethods = null;
 
 
 
 
 
     protected Map<SootClass, PatternEntryData> getInitialEntryClasses(Set<SootClass> allEntrypoints, IInfoflowCFG icfg) {
-        SootMethod finishM = Scene.v().getMethod(PatternDataConstant.FINISHMETHODSIG);
+        SootMethod finishM = null;
+        try {
+            finishM = Scene.v().getMethod(PatternDataConstant.FINISHMETHODSIG);
+        } catch (RuntimeException e) {
+            finishM = null;
+        }
+//        //test
+//        SootClass test = Scene.v().getSootClassUnsafe("com.klinker.android.twitter.activities.compose.Compose");
+//        for (test)
+//        //test
         if (null == finishM) {
             return Collections.EMPTY_MAP;
         }
@@ -49,6 +61,9 @@ public class Pattern1Data extends PatternData {
                 }
             }
         }
+        //更新一下不可跳过的方法
+        cannotSkipMethods = new HashSet<>();
+        cannotSkipMethods.addAll(callFinishMethod);
         Map<SootClass, PatternEntryData> initalEntrypoints = new HashMap<>();
         for (SootMethod m : callFinishMethod) {
             String finishTag = m.getSubSignature();
@@ -57,18 +72,21 @@ public class Pattern1Data extends PatternData {
                 PatternEntryData cData = initalEntrypoints.get(cClass);
                 if (null == cData) {
                     cData = new PatternEntryData(cClass);
-                    initalEntrypoints.put(cClass, cData);
                 }
                 updateEntryDataWithLCMethods(cClass, cData);
+                boolean hasInvolvedFields =  updateInvolvedFieldsInEntryDatas(icfg, cClass, cData);
+                if (!hasInvolvedFields) {
+                    initalEntrypoints.remove(cClass);
+                } else {
+                    initalEntrypoints.put(cClass, cData);
+                }
             }
         }
         return  initalEntrypoints;
     }
 
     protected void updateEntryDataWithLCMethods(SootClass cClass, PatternEntryData cData) {
-        //这部分到时候再减少一些
-        String[] methodsigs = new String[] {PatternDataConstant.ACTIVITY_ONCREATE, PatternDataConstant.ACTIVITY_ONSTART, PatternDataConstant.ACTIVITY_ONRESUME,
-                PatternDataConstant.ACTIVITY_ONPAUSE, PatternDataConstant.ACTIVITY_ONSTOP, PatternDataConstant.ACTIVITY_ONDESTROY};
+        String[] methodsigs = new String[] {PatternDataConstant.ACTIVITY_ONCREATE, PatternDataConstant.ACTIVITY_ONSTOP};
         for (String methodsig : methodsigs) {
             SootMethod lcmethod = cClass.getMethodUnsafe(methodsig);
             if (null != lcmethod) {
@@ -78,25 +96,7 @@ public class Pattern1Data extends PatternData {
         }
     }
 
-
-
-
-//    @Override
-//    public void updateDummyMainMethod(SootMethod dummyMainMethod) {
-//        Body b = dummyMainMethod.getActiveBody();
-//        for (Unit u : b.getUnits()) {
-//            if (u instanceof Stmt && ((Stmt) u).containsInvokeExpr()) {
-//                InvokeExpr exp = ((Stmt) u).getInvokeExpr();
-//                SootMethod currentMainM = exp.getMethod();
-//                String content = involvedEntrypoints.get(currentMainM.getDeclaringClass());
-//                if (null == content) {
-//                    continue;
-//                }
-//
-//                if (content.equals(PatternDataConstant.ONCREATESUBSIG)) {
-//
-//                }
-//            }
-//        }
-//    }
+    public Set<SootMethod> getCannotSkipMethods() {
+        return this.cannotSkipMethods;
+    }
 }
