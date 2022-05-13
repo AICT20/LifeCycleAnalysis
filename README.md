@@ -29,7 +29,7 @@ VALA is implemented based on Flowdroid---one of the most famous static analysis 
 The following options can be used to specify:
 -  -a:    the APK file (or the folder containing a list of APK files) to analyze
 -  -p:    the path to the platforms directory from the Android SDK
--  -pr:   the variant lifecycle ("SKIP1", "SKIP2" and "SWAP1") to detect inadequate resource usages in
+-  -lpr:   the variant lifecycle ("SKIP1", "SKIP2" and "SWAP1") to detect inadequate resource usages in
 -  -s:    the definition file for operations involved in resource leaks and data loss errors
 -  -mm:   the definition file for methods that have specific taint rules
 -  -eu:   the definition file for error usages in the variant lifecycles
